@@ -45,7 +45,7 @@ def normalize_plan(source, base):
     runtime = agent_runtime.load_runtime()
     adapter = plan.get('adapter', {'kind': 'gigacode', 'executable': runtime['executable'], 'backend': runtime['backend']})
     if not isinstance(adapter, dict) or adapter.get('kind') not in ('gigacode', 'cli', 'command'):
-        raise ValueError('Adapter must be gigacode, cli or a trusted command adapter; legacy qwen plans require an explicit new plan')
+        raise ValueError('Adapter must be gigacode, cli or a trusted command adapter; legacy plans require an explicit new plan')
     if adapter['kind'] == 'command':
         if (not isinstance(adapter.get('argv'), list) or not adapter['argv']
                 or any(not isinstance(arg, str) or not arg for arg in adapter['argv'])):

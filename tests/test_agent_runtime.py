@@ -79,15 +79,15 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             runtime.headless_command('cli', 'task', 'rules', max_wall_time='5s', isolated=True)
 
-    def test_legacy_measurements_keep_provider_and_cannot_compare_to_gigacode(self):
-        old = dict(qwen_version='v1', qwen_executable_sha256='same-binary')
+    def test_measurements_need_explicit_provider_and_executable_identity(self):
         new = dict(backend='gigacode', cli_version='v1', cli_executable_sha256='same-binary')
-        self.assertEqual(('qwen', 'v1', 'same-binary'), runtime.runtime_identity(old))
-        runtime.assert_same_runtime(old, dict(old))
+        self.assertEqual(('gigacode', 'v1', 'same-binary'), runtime.runtime_identity(new))
         runtime.assert_same_runtime(new, dict(new))
-        with self.assertRaises(ValueError): runtime.assert_same_runtime(old, new)
         with self.assertRaises(ValueError): runtime.assert_same_runtime(new, dict(new, backend='different'))
-        with self.assertRaises(ValueError): runtime.assert_same_runtime(new, {'cli_version': 'v1'})
+        for incomplete in ({'cli_version': 'v1'}, {}, dict(new, backend=''),
+                           dict(new, cli_executable_sha256=None)):
+            with self.subTest(manifest=incomplete):
+                with self.assertRaises(ValueError): runtime.assert_same_runtime(new, incomplete)
 
 
 if __name__ == '__main__': unittest.main()

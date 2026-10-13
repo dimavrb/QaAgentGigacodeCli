@@ -1,4 +1,4 @@
-# QA Agent — GIGACODE CLI · 2.1.1
+# QA Agent — GIGACODE CLI · 2.1.2
 
 Переносимый QA-пакет: координатор, 14 специализированных ролей, 5 skills,
 проверяемые контракты результатов и Python-инструменты. Основной профиль —
@@ -77,20 +77,20 @@ python3 scripts/run_test_automation.py \
 ## Документация
 
 - [Установка](docs/INSTALL.md), [перенос в приложение](docs/IMPORT_INTO_APP.md), [обновление](docs/SETUP_AND_UPDATE.md).
-- [Среды исполнения и переносимость](docs/RUNTIMES.md), [миграция на GIGACODE](docs/UPGRADE_2.1.1.md).
+- [Среды исполнения и переносимость](docs/RUNTIMES.md), [миграция на GIGACODE](docs/UPGRADE_2.1.2.md).
 - [Маршруты](docs/WORKFLOWS.md), [контракт](docs/CONTRACT.md), [приёмка](docs/TASK_ACCEPTANCE.md).
 - [Управляемое исполнение](docs/MANAGED_EXECUTION.md), [MCP-шлюз](docs/ACTION_GATEWAY.md), [сборка контекста](docs/CONTEXT_ASSEMBLY.md).
 - [Качество и ревью](docs/CONTENT_REVIEW.md), [ревью выводов](docs/CONCLUSION_REVIEW.md), [ревью с исполнением](docs/REVIEW_EXECUTION.md).
 - [Импакт-анализ](docs/IMPACT_ANALYSIS.md), [измерения](docs/QA_IMPROVEMENTS.md), [benchmark](examples/benchmark/README.md).
 - [Тестовые данные](docs/TEST_DATA.md), [заглушки](docs/STUBS.md), [браузерный пул](docs/BROWSER_PROFILES.md), [HTML-вопросы](docs/QUESTIONS_UI.md).
-- [Поставка 2.1.1](docs/RELEASE_2.1.1.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
+- [Поставка 2.1.2](docs/RELEASE_2.1.2.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
 
 ## Пределы проверки
 
 Локальные тесты проверяют механику на фикстурах и собственных процессах. Качество
 живого GIGACODE, продуктовые интеграции, экономия токенов и ускорение регресса
-требуют отдельного пилота. Исторические архивы и протоколы Qwen не являются
-подтверждением новой интеграции. Профильные skills-кандидаты не включаются
+требуют отдельного пилота. Исторические архивы и протоколы не являются
+подтверждением текущей интеграции. Профильные skills-кандидаты не включаются
 по умолчанию в managed-контекст без измеренного основания.
 
 ## Лицензия

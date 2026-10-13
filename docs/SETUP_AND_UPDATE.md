@@ -1,9 +1,9 @@
 # Настройка и обновление QA-пакета
 
-Текущий профиль — **GIGACODE CLI, 2.1.1**. Первая установка — [INSTALL.md](INSTALL.md),
-перенос в приложение — [IMPORT_INTO_APP.md](IMPORT_INTO_APP.md), миграция с Qwen —
-[UPGRADE_2.1.1.md](UPGRADE_2.1.1.md). Старые RELEASE/UPGRADE описывают исторические
-поставки своего исполнителя; их пути не являются инструкцией для GIGACODE.
+Текущий профиль — **GIGACODE CLI, 2.1.2**. Первая установка — [INSTALL.md](INSTALL.md),
+перенос в приложение — [IMPORT_INTO_APP.md](IMPORT_INTO_APP.md), переход с предыдущей версии —
+[UPGRADE_2.1.2.md](UPGRADE_2.1.2.md). Прежние релизные документы доступны в истории Git; текущая поставка содержит
+инструкции только для GIGACODE и общего CLI-контракта.
 
 Обновляйте весь пакет: общие инструкции, роли, skills, команды, валидаторы и
 примеры. Не заменяйте только файлы ролей. Сохраните предыдущий ZIP/commit и
@@ -32,7 +32,7 @@ gigacode
 Для ZIP проверьте checksum и manifest:
 
 ```bash
-python3 scripts/package_agent.py --verify /absolute/path/qa-agent-2.1.1.zip
+python3 scripts/package_agent.py --verify /absolute/path/qa-agent-2.1.2.zip
 ```
 
 Для отката восстановите пакет и согласованные адаптации из предыдущего commit/ZIP.

@@ -1,4 +1,4 @@
-# QA-пакет 2.1.1 — GIGACODE CLI
+# QA-пакет 2.1.2 — GIGACODE CLI
 
 Дата: 2026-10-13. Состав: 14 ролей, 5 skills и `/qa`. Общие QA-контракты и
 Python-утилиты сохранены; профиль GIGACODE вынесен в `.gigacode/`, shared-инструкции
@@ -15,7 +15,7 @@ Git/IDE, runtime, caches и локальные overrides исключены.
 python3 -m unittest discover -s tests -v
 python3 -m unittest discover -s examples/test-data -v
 python3 scripts/package_agent.py --output-dir dist --date 2026-10-13
-python3 scripts/package_agent.py --verify dist/qa-agent-2.1.1.zip
+python3 scripts/package_agent.py --verify dist/qa-agent-2.1.2.zip
 ```
 
 Локальный набор проверяет контракты, фикстуры CLI, процессы, ревью, отмену,
@@ -30,4 +30,4 @@ MCP-шлюз, совместимость метрик и упаковку. Ко�
 ускорение продукта. Preflight останавливает несовместимые headless-запуски;
 проверка memory/roles/skills/commands и live-pilot необходимы отдельно.
 
-Переход — [UPGRADE_2.1.1.md](UPGRADE_2.1.1.md), установка — [INSTALL.md](INSTALL.md).
+Переход — [UPGRADE_2.1.2.md](UPGRADE_2.1.2.md), установка — [INSTALL.md](INSTALL.md).

@@ -73,18 +73,20 @@ def headless_command(executable, prompt, system, *, max_wall_time, model=None,
 
 
 def runtime_identity(manifest):
-    """Old measurements remain explicitly attributed to their original runtime."""
-    if 'cli_version' in manifest or 'cli_executable_sha256' in manifest:
-        return (manifest.get('backend'), manifest.get('cli_version'),
-                manifest.get('cli_executable_sha256'))
-    return ('qwen', manifest.get('qwen_version'), manifest.get('qwen_executable_sha256'))
+    """Require explicit provenance before comparing captured measurements."""
+    keys = ('backend', 'cli_version', 'cli_executable_sha256')
+    if not isinstance(manifest, dict) or any(key not in manifest for key in keys):
+        raise ValueError('Runtime identity is incomplete')
+    if any(not isinstance(manifest[key], str) or not manifest[key].strip()
+           for key in ('backend', 'cli_executable_sha256')):
+        raise ValueError('Runtime backend and executable identity must be explicit')
+    version = manifest['cli_version']
+    if version is not None and (not isinstance(version, str) or not version.strip()):
+        raise ValueError('CLI version must be a nonempty string or null')
+    return tuple(manifest[key] for key in keys)
 
 
 def assert_same_runtime(left, right):
-    for manifest in (left, right):
-        keys = ('backend', 'cli_version', 'cli_executable_sha256') if 'cli_version' in manifest else ('qwen_version', 'qwen_executable_sha256')
-        if any(key not in manifest for key in keys):
-            raise ValueError('Runtime identity is incomplete')
     if runtime_identity(left) != runtime_identity(right):
         raise ValueError('Comparison conditions differ: CLI runtime identity')
 

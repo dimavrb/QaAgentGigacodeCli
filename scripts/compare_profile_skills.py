@@ -93,7 +93,10 @@ def load_run(directory, require_grading=True):
 
 
 def comparable(a, b):
-    assert_same_runtime(a, b)
+    # Failed preflight has no executable fingerprint and cannot yield a measurement.
+    # Preserve its diagnostic report; captured runs still require complete provenance.
+    if a.get('status') != 'unavailable' and b.get('status') != 'unavailable':
+        assert_same_runtime(a, b)
     for key in ('suite_sha256', 'agent_version', 'repeats', 'model_requested',
                 'self_review', 'check_quality', 'memory', 'mode', 'max_wall_time', 'measurement_kind'):
         if key not in a or key not in b or a[key] != b[key]:
