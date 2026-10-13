@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Вопросы агента</title>
+  <style>
+    :root { color-scheme: light; --ink:#20342e; --muted:#62736c; --green:#146c52; --border:#dce5df; --paper:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f4f7f4; color:var(--ink); font:16px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,input,textarea { font:inherit; }
+    button { cursor:pointer; }
+    button:disabled { cursor:default; opacity:.6; }
+    :focus-visible { outline:3px solid #69ad94; outline-offset:3px; }
+    .top { background:#fff; border-bottom:1px solid var(--border); }
+    .top-inner { max-width:1120px; margin:auto; padding:20px 28px; display:flex; align-items:center; gap:12px; }
+    .mark { width:36px; height:36px; background:var(--green); color:#fff; display:grid; place-items:center; border-radius:11px; font-weight:700; }
+    .top small { margin-left:auto; color:var(--muted); }
+    .layout { max-width:1120px; margin:40px auto; padding:0 28px; display:grid; grid-template-columns:240px minmax(0,1fr); gap:44px; }
+    aside { position:sticky; top:24px; align-self:start; }
+    .eyebrow { font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--green); }
+    h1 { font-size:34px; line-height:1.2; letter-spacing:-.035em; margin:10px 0 14px; }
+    .description { color:var(--muted); margin:0 0 26px; white-space:pre-wrap; }
+    .task { font-size:13px; color:var(--muted); overflow-wrap:anywhere; }
+    .progress { margin:14px 0 8px; height:5px; background:#dce6df; border-radius:5px; overflow:hidden; }
+    .progress div { height:100%; width:0; background:var(--green); transition:width .2s; }
+    #counter { font-size:14px; font-weight:600; }
+    nav { margin-top:24px; display:grid; gap:6px; }
+    nav a { color:var(--muted); text-decoration:none; display:flex; gap:10px; align-items:start; font-size:13px; padding:8px; border-radius:8px; }
+    nav a:hover { background:#e7eee8; }
+    .dot { flex-shrink:0; margin-top:3px; width:16px; height:16px; border:1px solid #b8c9be; border-radius:50%; }
+    .dot.done { border-color:var(--green); background:var(--green); }
+    .dot.deferred { border-color:#b47d38; background:#b47d38; }
+    fieldset { min-width:0; }
+    .question { background:var(--paper); border:1px solid var(--border); border-radius:16px; padding:26px; margin:0 0 18px; scroll-margin-top:24px; }
+    .question.error { border-color:#bf4d46; }
+    .question legend { padding:0 6px; margin-left:-6px; font-size:12px; color:var(--green); font-weight:700; }
+    .question h2 { font-size:20px; line-height:1.4; margin:0 0 10px; letter-spacing:-.02em; }
+    .context { color:var(--muted); font-size:14px; margin:0 0 16px; white-space:pre-wrap; }
+    .tags { font-size:12px; color:var(--muted); margin-bottom:18px; }
+    .options { display:grid; gap:8px; margin-bottom:16px; }
+    .option { display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border:1px solid var(--border); border-radius:10px; cursor:pointer; }
+    .option:has(input:checked) { border-color:var(--green); background:#edf6f0; }
+    input[type=radio],input[type=checkbox] { accent-color:var(--green); width:18px; height:18px; margin:3px 0 0; flex-shrink:0; }
+    textarea { display:block; width:100%; resize:vertical; min-height:104px; border:1px solid #cbd8ce; border-radius:10px; padding:12px 14px; background:#fcfdfb; color:var(--ink); }
+    textarea:disabled { background:#f1f4f1; }
+    .text-label { display:block; font-size:14px; margin-bottom:8px; font-weight:600; }
+    .defer { display:flex; gap:10px; align-items:center; margin-top:16px; font-size:14px; color:var(--muted); cursor:pointer; }
+    .error-note { color:#a53630; font-size:14px; margin:10px 0 0; }
+    .footer { background:#eaf0ea; padding:24px; border-radius:16px; margin-top:26px; }
+    .footer p { color:var(--muted); font-size:14px; margin:10px 0 20px; }
+    .actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+    .primary,.secondary { border-radius:10px; padding:12px 18px; font-weight:600; }
+    .primary { color:#fff; background:var(--green); border:1px solid var(--green); }
+    .primary:hover { background:#105b44; }
+    .secondary { color:var(--ink); background:#fff; border:1px solid #cbd8ce; }
+    #draft-status { font-size:12px; color:var(--muted); }
+    #status { margin:16px 0 0; white-space:pre-wrap; font-size:14px; }
+    #status.fail { color:#a53630; }
+    #status.success { color:var(--green); font-weight:600; }
+    #export { background:#fff; border:1px solid var(--border); border-radius:16px; padding:24px; margin-top:20px; }
+    #export h2 { font-size:19px; margin:0 0 12px; }
+    #export textarea { min-height:230px; font-size:14px; margin-bottom:14px; }
+    [hidden] { display:none!important; }
+    @media(max-width:760px) { .layout { display:block; padding:0 18px; margin:24px auto; } aside { position:static; margin-bottom:26px; } nav { display:none; } h1 { font-size:28px; } .top-inner { padding:16px 18px; } .top small { display:none; } .question { padding:20px; } .primary { width:100%; } }
+  </style>
+</head>
+<body>
+  <header class="top"><div class="top-inner"><span class="mark" aria-hidden="true">Q</span><strong>Диалог с QA-агентом</strong><small>Все уточнения · один ответ</small></div></header>
+  <div class="layout">
+    <aside aria-label="Прогресс ответов">
+      <div class="eyebrow">Уточнения по задаче</div>
+      <p class="task" id="task"></p>
+      <div id="counter" aria-live="polite"></div>
+      <div class="progress" role="progressbar" aria-label="Заполненные вопросы" aria-valuemin="0" aria-valuenow="0"><div id="bar"></div></div>
+      <nav aria-label="Список вопросов" id="navigation"></nav>
+    </aside>
+    <main>
+      <div class="eyebrow">Ваши решения — следующий шаг агента</div>
+      <h1 id="title"></h1><p class="description" id="description"></p>
+      <form id="form" novalidate>
+        <div id="questions"></div>
+        <div class="footer">
+          <label class="text-label" for="overall">Общий комментарий <span style="font-weight:400">· необязательно</span></label>
+          <textarea id="overall" placeholder="Дополнительный контекст, ограничения или пожелания"></textarea>
+          <p id="delivery"></p>
+          <div class="actions"><button class="primary" id="submit" type="submit"></button><span id="draft-status" role="status"></span></div>
+          <p id="status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+      <section id="export" hidden aria-label="Общий ответ">
+        <h2>Общий ответ агенту</h2>
+        <textarea id="summary" readonly aria-label="Текст общего ответа"></textarea>
+        <div class="actions"><button class="secondary" id="copy" type="button">Скопировать ответ</button><button class="secondary" id="download" type="button">Скачать ответы JSON</button></div>
+      </section>
+    </main>
+  </div>
+  <script id="config" type="application/json">__QUESTIONNAIRE_CONFIG__</script>
+  <script>
+    'use strict';
+    const config = JSON.parse(document.getElementById('config').textContent);
+    const packet = config.packet;
+    const live = Boolean(config.token) && location.protocol !== 'file:';
+    const $ = id => document.getElementById(id);
+    const storageKey = 'qa-questionnaire:' + packet.revision;
+    const controls = [];
+    let sent = Boolean(config.saved), submitting = false, exported = null;
+    function element(tag, text, className) {
+      const node = document.createElement(tag);
+      if (text !== undefined) node.textContent = text;
+      if (className) node.className = className;
+      return node;
+    }
+    function setStatus(text, kind='') { $('status').textContent = text; $('status').className = kind; }
+    $('title').textContent = packet.title;
+    document.title = packet.title + ' · QA-агент';
+    $('description').textContent = packet.description;
+    $('task').textContent = 'Задача ' + packet.task_id;
+    $('submit').textContent = live ? 'Отправить все ответы' : 'Сформировать общий ответ';
+    $('delivery').textContent = live
+      ? 'Ответы сохранятся одним файлом для агента. Если ответа пока нет, отметьте «Пока не знаю» — вопрос останется открытым.'
+      : 'Сформируйте общий ответ, затем скопируйте его в чат с агентом или передайте файл JSON. Если ответа пока нет, отметьте «Пока не знаю».';
+    packet.questions.forEach((q, index) => {
+      const card = element('fieldset', undefined, 'question');
+      card.id = 'question-' + index;
+      card.append(element('legend', 'ВОПРОС ' + String(index+1).padStart(2,'0')));
+      card.append(element('h2', q.question));
+      if (q.context) card.append(element('p', q.context, 'context'));
+      const labels = {planning:'Нужен для проектирования',execution:'Нужен для выполнения'};
+      const tags = [labels[q.blocks], ...q.requirement_ids, ...q.scenario_ids].filter(Boolean);
+      if (tags.length) card.append(element('div', tags.join(' · '), 'tags'));
+      const inputs = [];
+      if (q.options.length) {
+        const options = element('div', undefined, 'options');
+        q.options.forEach(option => {
+          const label = element('label', undefined, 'option');
+          const input = document.createElement('input');
+          input.type = q.type === 'multiple' ? 'checkbox' : 'radio';
+          input.name = 'options-' + index;
+          input.value = option;
+          label.append(input, element('span', option));
+          options.append(label); inputs.push(input);
+        });
+        const clear = element('button', 'Снять выбор', 'secondary');
+        clear.type = 'button';
+        clear.addEventListener('click', () => { inputs.forEach(i => i.checked=false); changed(); });
+        options.append(clear); card.append(options);
+        inputs.clearButton = clear;
+      }
+      const label = element('label', q.options.length ? 'Пояснение или свой ответ' : 'Ваш ответ', 'text-label');
+      label.htmlFor = 'answer-' + index;
+      const text = element('textarea');
+      text.id = label.htmlFor;
+      text.placeholder = q.options.length ? 'Можно уточнить выбранный вариант или написать свой ответ' : 'Напишите ответ здесь';
+      const deferLabel = element('label', undefined, 'defer');
+      const defer = document.createElement('input'); defer.type='checkbox';
+      deferLabel.append(defer, element('span', 'Пока не знаю — оставить вопрос открытым'));
+      const error = element('p', '', 'error-note'); error.id='error-'+index; error.hidden=true;
+      text.setAttribute('aria-describedby', error.id);
+      card.append(label, text, deferLabel, error);
+      $('questions').append(card);
+      const link = element('a'); link.href='#'+card.id;
+      const dot = element('span', undefined, 'dot'); dot.setAttribute('aria-hidden','true');
+      link.append(dot, element('span', q.question)); $('navigation').append(link);
+      controls.push({q, card, inputs, text, defer, error, dot});
+      defer.addEventListener('change', () => {
+        if (defer.checked) inputs.forEach(i => i.checked=false);
+        updateDeferred(); changed();
+      });
+    });
+    function collect() {
+      return {
+        schema_version:packet.schema_version, task_id:packet.task_id, request_id:packet.request_id,
+        questionnaire_id:packet.questionnaire_id, revision:packet.revision,
+        answers:controls.map(c => ({question_id:c.q.question_id, status:c.defer.checked ? 'deferred':'answered',
+          selected_options:c.inputs.filter(i=>i.checked).map(i=>i.value), text:c.text.value.trim()})),
+        overall_comment:$('overall').value.trim()
+      };
+    }
+    function complete(c) { return c.defer.checked || c.text.value.trim() || c.inputs.some(i=>i.checked); }
+    function updateDeferred() {
+      controls.forEach(c => {
+        c.inputs.forEach(i => i.disabled = c.defer.checked || sent || submitting);
+        if (c.inputs.clearButton) c.inputs.clearButton.disabled=c.defer.checked || sent || submitting;
+        c.text.disabled=sent || submitting; c.defer.disabled=sent || submitting;
+        c.text.placeholder=c.defer.checked ? 'Необязательно: что нужно, чтобы ответить?' : (c.q.options.length ? 'Можно уточнить выбранный вариант или написать свой ответ' : 'Напишите ответ здесь');
+      });
+      $('overall').disabled=sent || submitting; $('submit').disabled=sent || submitting;
+    }
+    function progress() {
+      const count=controls.filter(complete).length;
+      $('counter').textContent=count+' из '+controls.length+' вопросов заполнено';
+      $('bar').style.width=(count/controls.length*100)+'%';
+      const bar=$('bar').parentElement;
+      bar.setAttribute('aria-valuemax',controls.length); bar.setAttribute('aria-valuenow',count);
+      controls.forEach(c => { c.dot.className='dot'+(c.defer.checked ? ' deferred':complete(c) ? ' done':''); });
+    }
+    function changed() {
+      if (sent || submitting) return;
+      controls.forEach(c => { if (complete(c)) {c.error.hidden=true; c.card.classList.remove('error'); c.text.removeAttribute('aria-invalid');} });
+      progress(); $('export').hidden=true;
+      try { localStorage.setItem(storageKey, JSON.stringify(collect())); $('draft-status').textContent='Черновик сохранён в этом браузере'; }
+      catch { $('draft-status').textContent='Черновик доступен до закрытия страницы'; }
+      setStatus('');
+    }
+    function restore(response) {
+      if (!response || response.revision!==packet.revision || !Array.isArray(response.answers)) return;
+      controls.forEach(c => {
+        const a=response.answers.find(a=>a.question_id===c.q.question_id);
+        if (!a) return;
+        c.text.value=typeof a.text==='string' ? a.text:'';
+        c.defer.checked=a.status==='deferred';
+        c.inputs.forEach(i=>i.checked=!c.defer.checked && Array.isArray(a.selected_options) && a.selected_options.includes(i.value));
+      });
+      $('overall').value=typeof response.overall_comment==='string' ? response.overall_comment:'';
+      updateDeferred(); progress();
+    }
+    function showExport(response) {
+      exported=response;
+      const lines=['Ответы на вопросы агента','Задача: '+packet.task_id,'Пакет: '+packet.questionnaire_id,'Назначение: '+packet.request_id,'Ревизия: '+packet.revision,''];
+      response.answers.forEach((a,i) => {
+        lines.push(a.question_id+' — '+packet.questions[i].question);
+        if (a.status==='deferred') lines.push('Пока не знаю. Вопрос остаётся открытым.');
+        else if (a.selected_options.length) lines.push('Ответ: '+a.selected_options.join('; '));
+        if (a.text) lines.push((a.status==='deferred' ? 'Комментарий: ' : a.selected_options.length ? 'Пояснение: ':'Ответ: ')+a.text);
+        lines.push('');
+      });
+      if (response.overall_comment) lines.push('Общий комментарий: '+response.overall_comment);
+      $('summary').value=lines.join('\n'); $('export').hidden=false;
+    }
+    $('form').addEventListener('input', changed);
+    $('form').addEventListener('submit', async event => {
+      event.preventDefault(); if (sent || submitting) return;
+      const missing=controls.filter(c=>!complete(c));
+      if (missing.length) {
+        missing.forEach(c=>{c.card.classList.add('error'); c.error.textContent='Заполните ответ или отметьте «Пока не знаю».'; c.error.hidden=false; c.text.setAttribute('aria-invalid','true');});
+        setStatus('Осталось заполнить вопросов: '+missing.length, 'fail'); missing[0].text.focus(); return;
+      }
+      const response=collect();
+      if (!live) { showExport(response); setStatus('Общий ответ готов. Скопируйте его в чат или передайте агенту файл JSON.', 'success'); $('export').scrollIntoView({behavior:'smooth',block:'nearest'}); return; }
+      submitting=true; updateDeferred(); setStatus('Сохраняем общий ответ…');
+      try {
+        const result=await fetch('/answers', {method:'POST', headers:{'Content-Type':'application/json','X-Questionnaire-Token':config.token}, body:JSON.stringify(response), signal:AbortSignal.timeout(15000)});
+        const data=await result.json(); if (!result.ok) throw new Error(data.error || 'Не удалось сохранить ответы');
+        response.submitted_at=data.submitted_at;
+        sent=true; updateDeferred(); showExport(response);
+        $('submit').textContent='Ответы отправлены';
+        setStatus(config.tracked
+          ? 'Все ответы сохранены. Координатор, ожидающий эту форму, может продолжить работу.'
+          : 'Все ответы сохранены для агента. Можно вернуться к работе. Если агент ждёт в чате, напишите ему «Ответы отправлены».', 'success');
+        try {localStorage.removeItem(storageKey);} catch {}
+        $('draft-status').textContent='';
+      } catch (error) { setStatus(error.name==='TimeoutError' ? 'Сервер не ответил вовремя. Повторите отправку или скопируйте общий ответ.' : 'Ответ не подтверждён: '+error.message+'. Можно повторить отправку или скопировать общий ответ.', 'fail'); showExport(response); }
+      finally { submitting=false; updateDeferred(); }
+    });
+    $('copy').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText($('summary').value); setStatus('Общий ответ скопирован.', 'success'); }
+      catch { $('summary').focus(); $('summary').select(); setStatus('Текст выделен. Нажмите Ctrl+C или ⌘C, затем вставьте его в чат.'); }
+    });
+    $('download').addEventListener('click', () => {
+      if (!exported) return;
+      const url=URL.createObjectURL(new Blob([JSON.stringify(exported,null,2)+'\n'], {type:'application/json'}));
+      const link=document.createElement('a'); link.href=url; link.download='qa-answers.json'; link.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+    });
+    try { restore(JSON.parse(localStorage.getItem(storageKey))); } catch {}
+    if (config.saved) {restore(config.saved); showExport(config.saved); $('submit').textContent='Ответы отправлены'; setStatus('Этот пакет ответов уже сохранён для агента.', 'success');}
+    updateDeferred(); progress();
+  </script>
+</body>
+</html>

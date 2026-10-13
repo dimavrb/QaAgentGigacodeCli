@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "task_id": "QA-STUB-DEMO",
+  "request_id": "QA-STUB-DEMO-1",
+  "environment_id": "fixture-stage",
+  "mcp_server": "sbermock",
+  "project_id": "fixture-project",
+  "namespace": "QA-STUB-DEMO:run1",
+  "profile_sha256": "28ad04c31485a3ac6eb9f5edbcb66871303d6eaf80d135f2e8b7dc9aaf19c5f1",
+  "checks": [
+    {
+      "case_id": "REST-APPROVED",
+      "status": "verified",
+      "readback": {
+        "artifact": "observations/rest-readback.json",
+        "sha256": "3969afe3ba1c51adfec0f179cba4a7d6ca2faba24fe9babe89d648295fcecc67"
+      },
+      "positive": {
+        "artifact": "observations/rest-positive.json",
+        "sha256": "79e8d0159f82fa2faf54cdfdc9de702d9d0930ad3c902ccaf6c39a2c1d776e7e"
+      },
+      "negative": {
+        "artifact": "observations/rest-negative.json",
+        "sha256": "671923eeffc8c6b1bb7c7218974ebca9ec2916188d27e2c1ff4e7324ba67e9e8"
+      }
+    },
+    {
+      "case_id": "KAFKA-READY",
+      "status": "verified",
+      "readback": {
+        "artifact": "observations/kafka-readback.json",
+        "sha256": "130383945f0ac2915948a41011718b01c8346386acf86ba96f8ac1983f667670"
+      },
+      "positive": {
+        "artifact": "observations/kafka-positive.json",
+        "sha256": "5388b78bc33490b222fa4323ac5e802b409c5894073b8b37ff31e19d7fb79cce"
+      },
+      "negative": {
+        "artifact": "observations/kafka-negative.json",
+        "sha256": "efb85ad3c7d10f2a31539ad63ee6fb7a8f23ddaf06837dd3bc0b98f477fdf7f0"
+      }
+    }
+  ],
+  "limitations": [
+    "Все материалы синтетические; подключение MCP и реальное приложение не проверялись",
+    "Готовность заглушек не подтверждает продукт или реальную интеграцию",
+    "Kafka: отсутствие ответа наблюдалось только в учебном окне 200 мс"
+  ],
+  "provider": "sbermock",
+  "assignment_sha256": "d575500a0df2f264e01b7e82c05302529ff27f7e2ffdd1e2bdf8be14dddccb94"
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "task_id": "QA-STUB-DEMO",
+  "request_id": "QA-STUB-DEMO-1",
+  "environment_id": "fixture-stage",
+  "mcp_server": "sbermock",
+  "project_id": "fixture-project",
+  "namespace": "QA-STUB-DEMO:run1",
+  "stub_id": "fixture-kafka-1",
+  "kind": "KAFKA",
+  "observed_at": "2026-10-07T12:00:00.600+03:00",
+  "source": "synthetic fixture; no live MCP call",
+  "control": "negative",
+  "input": {
+    "topic": "fixture.requests",
+    "key": "different-order",
+    "value": {
+      "correlation_id": "run1-negative"
+    }
+  },
+  "expected": {
+    "messages": [],
+    "observation_window_ms": 200
+  },
+  "actual": {
+    "messages": [],
+    "observation_window_ms": 200
+  },
+  "passed": true,
+  "provider": "sbermock",
+  "capture": {
+    "correlation_id": "run1-negative",
+    "started_at": "2026-10-07T12:00:00.400+03:00",
+    "ended_at": "2026-10-07T12:00:00.600+03:00",
+    "position": {
+      "group": "fixture-reader-run1",
+      "start_offsets": {
+        "0": 10
+      },
+      "end_offsets": {
+        "0": 10
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "task_id": "QA-HANDOFF",
+  "request_id": "analysis-1",
+  "agent": "qa-analyst",
+  "event": "analysis_ready",
+  "summary": "Синтетический пример передачи результата; продуктовые действия не выполнялись.",
+  "artifacts": [
+    "../test-plan/requirements.md"
+  ],
+  "blockers": [],
+  "payload": {
+    "requirements": [
+      {
+        "requirement_id": "R-1",
+        "description": "Фильтр показывает только оплаченные заказы",
+        "status": "confirmed",
+        "source": "../test-plan/requirements.md#r-1"
+      },
+      {
+        "requirement_id": "R-2",
+        "description": "Вход с неверным паролем отклоняется",
+        "status": "confirmed",
+        "source": "../test-plan/requirements.md#r-2"
+      }
+    ],
+    "risk_scenarios": [
+      {
+        "scenario_id": "TC-001",
+        "requirement_id": "R-1",
+        "risk": "В выдаче остаются неоплаченные заказы",
+        "priority": "high",
+        "priority_reason": "Нарушается критерий состава выдачи",
+        "distinction": "Проверяет состав отфильтрованных заказов",
+        "expectation_status": "confirmed",
+        "expected_result": "В выдаче только оплаченные заказы",
+        "expected_source": "../test-plan/requirements.md#r-1"
+      },
+      {
+        "scenario_id": "TC-002",
+        "requirement_id": "R-2",
+        "risk": "Вход разрешён с неверным паролем",
+        "priority": "high",
+        "priority_reason": "Нарушается критерий проверки пароля",
+        "distinction": "Проверяет отказ авторизации",
+        "expectation_status": "confirmed",
+        "expected_result": "Вход отклонён",
+        "expected_source": "../test-plan/requirements.md#r-2"
+      }
+    ],
+    "blocking_questions": [],
+    "assumptions": [],
+    "coverage_gaps": [],
+    "test_plan_required": true,
+    "test_plan_reason": "Нужно связать два требования с каталогом и условиями проверки"
+  }
+}

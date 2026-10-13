@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-08",
+  "scope": "first improvement package in source; release ZIP unchanged",
+  "unit_and_integration_tests": {
+    "command": "python3 -m unittest discover -s tests",
+    "status": "passed",
+    "tests": 287,
+    "seconds": 21.842
+  },
+  "cli_smoke": {
+    "status": "passed",
+    "synthetic": true,
+    "task_revision": 7,
+    "execution_status": "completed",
+    "criterion_status": "verified",
+    "exported_trace_events": 6
+  },
+  "benchmark_adapter_tests": {
+    "status": "passed",
+    "synthetic_adapter": true,
+    "independent_repeats_checked": 2,
+    "cases_per_repeat": 5,
+    "semantic_grading": "not_checked"
+  },
+  "live_qwen_check": {
+    "status": "unavailable",
+    "reason": "Qwen CLI unavailable",
+    "semantic_quality": "not_reviewed",
+    "artifact": "artifacts/benchmarks/first-package-qwen-check-20261008/run.json"
+  },
+  "self_review": {
+    "status": "completed",
+    "fix": "Superseded independent-review reports are revalidated against accepted hashes before they can authorize completion. Exact author revision is checked.",
+    "limitations": [
+      "Criteria and review links do not prove semantic correctness; coordinator must inspect evidence.",
+      "Benchmark is a reasoning baseline, not an end-to-end MCP/browser evaluation.",
+      "Per-tool telemetry and interactive usage collection are outside this package."
+    ]
+  },
+  "release_1_9_sha256": "28c5dc7c4bec7cf58b359d7d91687c4a637442605e88ff712b8a509c6f32a09c",
+  "source_sha256": {
+    "scripts/task_acceptance.py": "ab274c5bfb3ed9a3467c7ffeafb807b96d987f273acc2ef4dc0faad2f402f6d4",
+    "scripts/task_exchange.py": "40e67559887f9734ee1460f7b8c3f9b49f86e184e38c748fec530c5d22697793",
+    "scripts/manage_task.py": "45d3823ba1e0d1861031e11ad2b0ecfa40593f07bb19a356a5eaa233d25cd47b",
+    "scripts/agent_trace.py": "977cf4b0eaff4618081efce646fc5da9844bbba249022a404d9b7d2860dc446b",
+    "scripts/export_task_trace.py": "dd8b356b892965386a8ee2bd8388ce636c47cd6a20dc8097c228d89fe8d5c4cc",
+    "scripts/run_test_automation.py": "376cf81e32c712aad0772a1c25f9aae450628796c3b5fe78916772a90936f075",
+    "scripts/run_agent_benchmark.py": "01fe78beb382907d45e35d90684486f0c0e3e80a7481614fb66e87eebf306528",
+    "scripts/check_benchmark_review.py": "5a6f9c41727b9053fc71b2e115967f1e259da7ae5ddab862bcbb17c15e6540b7",
+    "tests/test_first_package.py": "822ffd737ac3661931a17bbbdd5af66f4e69a3805698bc9dc057df1d776600e5",
+    "tests/test_runner.py": "14a26b32d5713799c60775184f79a65b74fd9513af735c6c43fe55b234cc239b",
+    "QWEN.md": "d0b808f990845a2514e186b812edcb8c9c0da8b12c43d8c252739c6e43501ac7",
+    "docs/TASK_ACCEPTANCE.md": "be7ac8a0f94b8f7dee429125115f596b12a211e06ffdc81bd29780ee2d11eb4b",
+    "examples/benchmark/README.md": "09ac526f6ce38a60a101d4ed6579c9777261561cec5c63ab91e71a166ac8c60f",
+    "examples/task-exchange/criteria.json": "d8227bb17017b3a5d68aa3746d1f2ab159ff31eff1cad10142b29405f35b088f",
+    "examples/task-exchange/assessments.json": "9f9adc72972ececc5513f4aae5a6183fa5e20ab6fd61cf25343e7a8cd4e158ed"
+  }
+}

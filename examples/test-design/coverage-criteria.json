@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "criteria": [
+    {
+      "criterion_id": "C-COMB",
+      "description": "Каждая комбинация доступа воспроизводится и различает применимое правило",
+      "source": "requirements.md#access",
+      "required": true,
+      "kind": "combination_coverage",
+      "combination_bundle_id": "access",
+      "model_sha256": "cb0f4ad3b4de9fd9200d2ee6120861d893d147cc52d75aa65344bb8ec15fff0b",
+      "required_reviews": [
+        {
+          "scope": "coverage",
+          "agent": "qa-result-reviewer"
+        }
+      ]
+    }
+  ]
+}

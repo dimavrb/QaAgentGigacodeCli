@@ -1,0 +1,30 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "isolated": true,
+    "launchOptions": {
+      "channel": "chrome",
+      "headless": false
+    },
+    "contextOptions": {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    }
+  },
+  "snapshot": {
+    "mode": "none"
+  },
+  "imageResponses": "omit",
+  "console": {
+    "level": "warning"
+  },
+  "timeouts": {
+    "action": 5000,
+    "navigation": 60000
+  },
+  "outputDir": "artifacts/browser",
+  "filePaths": "absolute",
+  "codegen": "none"
+}

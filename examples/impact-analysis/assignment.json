@@ -1,0 +1,32 @@
+{
+  "task_id": "QA-IMPACT",
+  "request_id": "QA-IMPACT-1",
+  "agent": "qa-impact-analyst",
+  "stage": "impact",
+  "goal": "Выбрать учебный регресс по изменению orders",
+  "acceptance_criteria": [
+    "Все ID отражены, косвенное влияние и обязательные тесты сохранены",
+    "Источники неизменны, исключения требуют независимого ревью"
+  ],
+  "stop_condition": "Вернуть проверенную рекомендацию без продуктовых действий",
+  "expected_artifact": "impact_ready и selection.json",
+  "result_path": "result.json",
+  "artifact_base": ".",
+  "impact_input": "impact-input.json",
+  "inputs": [
+    "requirements.md"
+  ],
+  "depends_on": [],
+  "criterion_ids": [
+    "C-IMPACT"
+  ],
+  "scenario_ids": [
+    "TC-ORDER",
+    "TC-EXPORT",
+    "TC-LOGIN",
+    "TC-PAY",
+    "TC-NEW",
+    "TC-FAIL",
+    "TC-UNKNOWN"
+  ]
+}

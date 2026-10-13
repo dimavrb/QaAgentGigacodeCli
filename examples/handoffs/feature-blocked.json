@@ -1,0 +1,48 @@
+{
+  "task_id": "QA-HANDOFF",
+  "request_id": "feature-2",
+  "agent": "qa-feature-tester",
+  "event": "blocked",
+  "summary": "Синтетический пример передачи результата; продуктовые действия не выполнялись.",
+  "artifacts": [
+    "evidence.txt"
+  ],
+  "blockers": [
+    "B-2: все назначенные ID заблокированы"
+  ],
+  "payload": {
+    "scenario_results": [
+      {
+        "scenario_id": "TC-001",
+        "environment_id": "synthetic",
+        "product_version": "fixture-1",
+        "status": "blocked",
+        "steps": [],
+        "expected_source": "../test-plan/requirements.md#r-1",
+        "expected_result": "В выдаче только оплаченные заказы",
+        "actual_result": "B-2: синтетический стенд недоступен",
+        "evidence": [
+          "evidence.txt"
+        ]
+      },
+      {
+        "scenario_id": "TC-002",
+        "environment_id": "synthetic",
+        "product_version": "fixture-1",
+        "status": "blocked",
+        "steps": [],
+        "expected_source": "../test-plan/requirements.md#r-2",
+        "expected_result": "Вход отклонён",
+        "actual_result": "B-2: синтетический стенд недоступен",
+        "evidence": [
+          "evidence.txt"
+        ]
+      }
+    ],
+    "uncovered_scenarios": [
+      "TC-001",
+      "TC-002"
+    ],
+    "defects": []
+  }
+}

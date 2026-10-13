@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "test_cases": [
+    {
+      "scenario_id": "TC-ORDER",
+      "title": "Заказ — собственная запись — содержимое доступно",
+      "requirement_source": "requirements.md#orders",
+      "preconditions": [
+        "Учебное предусловие из требования"
+      ],
+      "steps": [
+        {
+          "name": "Открыть соответствующую запись",
+          "expected_result": "содержимое доступно"
+        }
+      ]
+    },
+    {
+      "scenario_id": "TC-EXPORT",
+      "title": "Экспорт — собственные заказы — выборка совпадает",
+      "requirement_source": "requirements.md#export",
+      "preconditions": [
+        "Учебное предусловие из требования"
+      ],
+      "steps": [
+        {
+          "name": "Открыть соответствующую запись",
+          "expected_result": "выборка совпадает"
+        }
+      ]
+    },
+    {
+      "scenario_id": "TC-LOGIN",
+      "title": "Вход — активный пользователь — сессия открывается",
+      "requirement_source": "requirements.md#auth",
+      "preconditions": [
+        "Учебное предусловие из требования"
+      ],
+      "steps": [
+        {
+          "name": "Открыть соответствующую запись",
+          "expected_result": "сессия открывается"
+        }
+      ]
+    },
+    {
+      "scenario_id": "TC-PAY",
+      "title": "Платёж — существующая запись — статус доступен",
+      "requirement_source": "requirements.md#payment",
+      "preconditions": [
+        "Учебное предусловие из требования"
+      ],
+      "steps": [
+        {
+          "name": "Открыть соответствующую запись",
+          "expected_result": "статус доступен"
+        }
+      ]
+    },
+    {
+      "scenario_id": "TC-NEW",
+      "title": "Счёт — собственная запись — содержимое доступно",
+      "requirement_source": "requirements.md#invoice",
+      "preconditions": [
+        "Учебное предусловие из требования"
+      ],
+      "steps": [
+        {
+          "name": "Открыть соответствующую запись",
+          "expected_result": "содержимое доступно"
+        }
+      ]
+    },
+    {
+      "scenario_id": "TC-FAIL",
+      "title": "Доставка — существующая запись — состояние доступно",
+      "requirement_source": "requirements.md#shipping",
+      "preconditions": [
+        "Учебное предусловие из требования"
+      ],
+      "steps": [
+        {
+          "name": "Открыть соответствующую запись",
+          "expected_result": "состояние доступно"
+        }
+      ]
+    },
+    {
+      "scenario_id": "TC-UNKNOWN",
+      "title": "Уведомление — собственная запись — текст доступен",
+      "requirement_source": "requirements.md#unknown",
+      "preconditions": [
+        "Учебное предусловие из требования"
+      ],
+      "steps": [
+        {
+          "name": "Открыть соответствующую запись",
+          "expected_result": "текст доступен"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "task_id": "QA-REPORT-DEMO",
+  "scope_revision": "scope-v2",
+  "scope_kind": "synthetic",
+  "feature": "Учебная оплата и отмена заказа",
+  "configurations": [
+    {
+      "configuration_id": "CHECKOUT-ON",
+      "environment_id": "synthetic",
+      "product_version": "fixture-1",
+      "requirements_revision": "fixture-R1",
+      "context": {
+        "role": "buyer",
+        "channel": "UI",
+        "browser": "Chrome",
+        "data_profile": "own-paid-order"
+      },
+      "feature_flags": {
+        "new_checkout": true
+      }
+    },
+    {
+      "configuration_id": "CHECKOUT-OFF",
+      "environment_id": "synthetic",
+      "product_version": "fixture-1",
+      "requirements_revision": "fixture-R1",
+      "context": {
+        "role": "buyer",
+        "channel": "UI",
+        "browser": "Chrome",
+        "data_profile": "own-paid-order"
+      },
+      "feature_flags": {
+        "new_checkout": false
+      }
+    }
+  ],
+  "checks": [
+    {
+      "check_id": "PAY-ON",
+      "scenario_id": "TC-PAY",
+      "configuration_id": "CHECKOUT-ON",
+      "required": true,
+      "requirement_source": "requirements.md#pay",
+      "intent": {
+        "action": "Оплатить свой заказ картой",
+        "business_rule": "Покупатель может оплатить свой заказ картой при включённом и выключенном new_checkout",
+        "expected_effect": "Заказ оплачен"
+      }
+    },
+    {
+      "check_id": "PAY-OFF",
+      "scenario_id": "TC-PAY",
+      "configuration_id": "CHECKOUT-OFF",
+      "required": true,
+      "requirement_source": "requirements.md#pay",
+      "intent": {
+        "action": "Оплатить свой заказ картой",
+        "business_rule": "Покупатель может оплатить свой заказ картой при включённом и выключенном new_checkout",
+        "expected_effect": "Заказ оплачен"
+      }
+    },
+    {
+      "check_id": "CANCEL-ON",
+      "scenario_id": "TC-CANCEL",
+      "configuration_id": "CHECKOUT-ON",
+      "required": true,
+      "requirement_source": "requirements.md#cancel",
+      "intent": {
+        "action": "Отменить свой оплаченный заказ",
+        "business_rule": "При отмене оплаченного заказа платёж возвращается покупателю",
+        "expected_effect": "Заказ отменён и платёж возвращён"
+      }
+    }
+  ],
+  "business_cases": [
+    {
+      "business_case_id": "BC-PAY",
+      "title": "Покупатель оплачивает свой заказ картой",
+      "source": "requirements.md#pay",
+      "check_ids": [
+        "PAY-ON",
+        "PAY-OFF"
+      ],
+      "business_goal": "Завершить оплату своего заказа картой"
+    },
+    {
+      "business_case_id": "BC-CANCEL",
+      "title": "Покупатель отменяет оплаченный заказ",
+      "source": "requirements.md#cancel",
+      "check_ids": [
+        "CANCEL-ON"
+      ],
+      "business_goal": "Отменить оплаченный заказ с возвратом платежа"
+    }
+  ]
+}

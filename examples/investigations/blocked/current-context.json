@@ -1,0 +1,12 @@
+{
+  "context": {
+    "environment_id": "fixture-stage",
+    "product_version": "fixture-1",
+    "requirements_revision": "R1",
+    "data_revision": "D1"
+  },
+  "verified_at": "2026-10-02T10:01:00+03:00",
+  "verification_evidence": [
+    "conditions.txt"
+  ]
+}

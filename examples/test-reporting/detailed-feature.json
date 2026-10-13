@@ -1,0 +1,51 @@
+{
+  "task_id": "QA-REPORT-DEMO",
+  "request_id": "feature-detailed-1",
+  "agent": "qa-feature-tester",
+  "event": "feature_test_complete",
+  "summary": "Синтетический пример, приложение не запускалось",
+  "artifacts": [
+    "detailed-evidence.txt"
+  ],
+  "blockers": [
+    "Синтетический возврат недоступен"
+  ],
+  "payload": {
+    "scenario_results": [
+      {
+        "scenario_id": "TC-PAY",
+        "environment_id": "synthetic",
+        "product_version": "fixture-1",
+        "status": "passed",
+        "steps": [
+          "В учебной записи покупатель открыл свой заказ и выбрал оплату картой.",
+          "В учебной записи покупатель подтвердил оплату.",
+          "В учебной записи проверен результат оплаты в карточке заказа."
+        ],
+        "expected_source": "requirements.md#pay",
+        "expected_result": "Заказ оплачен",
+        "actual_result": "В учебной записи после подтверждения оплаты карточка заказа показывает «оплачен». Списание денег и чек в этой записи не описаны.",
+        "evidence": [
+          "detailed-evidence.txt"
+        ]
+      },
+      {
+        "scenario_id": "TC-CANCEL",
+        "environment_id": "synthetic",
+        "product_version": "fixture-1",
+        "status": "blocked",
+        "steps": [],
+        "expected_source": "requirements.md#cancel",
+        "expected_result": "Заказ отменён и платёж возвращён",
+        "actual_result": "Синтетический сервис возврата недоступен",
+        "evidence": [
+          "detailed-evidence.txt"
+        ]
+      }
+    ],
+    "uncovered_scenarios": [
+      "TC-CANCEL"
+    ],
+    "defects": []
+  }
+}

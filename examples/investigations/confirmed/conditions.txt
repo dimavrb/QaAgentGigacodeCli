@@ -1,0 +1,2 @@
+Учебная перепроверка условий 2026-10-02T10:01:00+03:00
+{"environment_id": "fixture-stage", "product_version": "fixture-1", "requirements_revision": "R1", "data_revision": "D1"}

@@ -1,0 +1,20 @@
+{
+  "task_id": "QA-FIXTURE",
+  "request_id": "jira-1",
+  "agent": "qa-jira-defect-creator",
+  "event": "jira_defect_created",
+  "summary": "Синтетический пример передачи результата; продуктовые действия не выполнялись.",
+  "artifacts": [
+    "../investigations/confirmed/state.json",
+    "../investigations/confirmed/observation.txt"
+  ],
+  "blockers": [],
+  "payload": {
+    "issue_key": "FIXTURE-1",
+    "issue_url": "https://jira.example.invalid/FIXTURE-1",
+    "duplicate_check": "Синтетическое отсутствие дублей",
+    "evidence": [
+      "../investigations/confirmed/observation.txt"
+    ]
+  }
+}

@@ -1,0 +1,2 @@
+СИНТЕТИЧЕСКИЕ метаданные наблюдаемой сборки, не локальный HEAD.
+fixture-stage: product_version=fixture-1; source_revision=fixture-source-1

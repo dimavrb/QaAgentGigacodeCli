@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "task_id": "QA-STUB-CONFIG",
+  "request_id": "QA-STUB-CONFIG-1",
+  "environment_id": "fixture-stage",
+  "mcp_server": "sbermock",
+  "project_id": "fixture-project",
+  "namespace": "QA-STUB-CONFIG:run1",
+  "stub_id": "fixture-kafka-1-config",
+  "kind": "KAFKA",
+  "observed_at": "2026-10-07T12:00:00+03:00",
+  "source": "synthetic fixture; no live MCP call",
+  "definition": {
+    "mode": "reactive",
+    "input": {
+      "topic": "fixture.requests",
+      "key": "run1-order1"
+    },
+    "output": {
+      "topic": "fixture.responses",
+      "key": "run1-order1",
+      "value": {
+        "state": "ready",
+        "correlation_id": "run1-c1"
+      }
+    },
+    "enabled": true
+  },
+  "provider": "sbermock"
+}

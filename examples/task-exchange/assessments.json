@@ -1,0 +1,3 @@
+{
+  "assessments": [{"criterion_id": "C-PROTOCOL", "status": "verified", "decision": "Учебные отчёт и доказательство прочитаны; подтверждён только локальный синтетический протокол", "request_ids": ["QA-EXCHANGE-env-1"], "evidence": ["evidence.txt"]}]
+}

@@ -1,0 +1,11 @@
+{
+  "task_id": "QA-PLAN-1",
+  "owner_task_id": "example-gigacode-background-task-id",
+  "owner_role": "qa-test-plan-writer",
+  "active_request_id": "QA-PLAN-1-plan-2",
+  "plan_revision": "v2",
+  "accepted_plan_revision": null,
+  "plan_artifact": "plan-v2.md",
+  "test_cases_artifact": "cases-v2.json",
+  "continuation_fallback_reason": null
+}

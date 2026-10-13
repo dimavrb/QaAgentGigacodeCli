@@ -1,0 +1,79 @@
+{
+  "task_id": "QA-HANDOFF",
+  "request_id": "analysis-2",
+  "agent": "qa-analyst",
+  "event": "analysis_ready",
+  "summary": "Синтетический пример передачи результата; продуктовые действия не выполнялись.",
+  "artifacts": [
+    "requirements-initial.md"
+  ],
+  "blockers": [],
+  "payload": {
+    "requirements": [
+      {
+        "requirement_id": "R-1",
+        "description": "Фильтр показывает только оплаченные заказы",
+        "status": "confirmed",
+        "source": "requirements-initial.md#r-1"
+      },
+      {
+        "requirement_id": "R-2",
+        "description": "Поведение входа с неверным паролем не определено",
+        "status": "unknown",
+        "source": null
+      }
+    ],
+    "risk_scenarios": [
+      {
+        "scenario_id": "TC-001",
+        "requirement_id": "R-1",
+        "risk": "В выдаче остаются неоплаченные заказы",
+        "priority": "high",
+        "priority_reason": "Нарушается критерий состава выдачи",
+        "distinction": "Проверяет состав отфильтрованных заказов",
+        "expectation_status": "confirmed",
+        "expected_result": "В выдаче только оплаченные заказы",
+        "expected_source": "requirements-initial.md#r-1"
+      },
+      {
+        "scenario_id": "TC-002",
+        "requirement_id": "R-2",
+        "risk": "Вход разрешён с неверным паролем",
+        "priority": "high",
+        "priority_reason": "Нарушается критерий проверки пароля",
+        "distinction": "Проверяет отказ авторизации",
+        "expectation_status": "unknown",
+        "expected_result": null,
+        "expected_source": null
+      }
+    ],
+    "blocking_questions": [
+      {
+        "question_id": "Q-1",
+        "question": "Как ведёт себя вход с неверным паролем?",
+        "requirement_ids": [
+          "R-2"
+        ],
+        "scenario_ids": [
+          "TC-002"
+        ],
+        "blocks": "planning"
+      }
+    ],
+    "assumptions": [],
+    "coverage_gaps": [
+      {
+        "gap_id": "G-1",
+        "description": "Не определено ожидание TC-002",
+        "requirement_ids": [
+          "R-2"
+        ],
+        "scenario_ids": [
+          "TC-002"
+        ]
+      }
+    ],
+    "test_plan_required": true,
+    "test_plan_reason": "Нужно связать два требования с каталогом и условиями проверки"
+  }
+}

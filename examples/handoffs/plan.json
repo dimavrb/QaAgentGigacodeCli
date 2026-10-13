@@ -1,0 +1,57 @@
+{
+  "task_id": "QA-HANDOFF",
+  "request_id": "plan-1",
+  "agent": "qa-test-plan-writer",
+  "event": "plan_ready",
+  "summary": "Синтетический план для проверки передачи анализа",
+  "artifacts": [
+    "../test-plan/plan-v3.md",
+    "../test-plan/cases-v3.json"
+  ],
+  "blockers": [],
+  "payload": {
+    "plan_artifact": "../test-plan/plan-v3.md",
+    "plan_revision": "v3",
+    "requirement_coverage": [
+      {
+        "requirement_id": "R-1",
+        "source": "../test-plan/requirements.md#r-1",
+        "scenario_ids": [
+          "TC-001"
+        ],
+        "priority": "high",
+        "verification": "UI",
+        "evidence": "Скриншот результата",
+        "status": "ready"
+      },
+      {
+        "requirement_id": "R-2",
+        "source": "../test-plan/requirements.md#r-2",
+        "scenario_ids": [
+          "TC-002"
+        ],
+        "priority": "high",
+        "verification": "UI",
+        "evidence": "Скриншот результата",
+        "status": "ready"
+      }
+    ],
+    "open_questions": [
+      {
+        "question_id": "Q-1",
+        "question": "Как ведёт себя вход с неверным паролем?",
+        "requirement_ids": [
+          "R-2"
+        ],
+        "scenario_ids": [
+          "TC-002"
+        ],
+        "blocks": "planning",
+        "status": "resolved",
+        "resolution": "Вход отклоняется",
+        "decision_source": "../test-plan/requirements.md#r-2"
+      }
+    ],
+    "test_cases_artifact": "../test-plan/cases-v3.json"
+  }
+}

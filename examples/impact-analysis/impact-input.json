@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "base_revision": "demo-base",
+  "target_revision": "demo-target",
+  "change_set": {
+    "path": "changes.json",
+    "sha256": "57a1c5235b67d8b90c18643465379020de1be4ce4b0888b310bd8826ab1de17c"
+  },
+  "catalog": {
+    "path": "catalog.json",
+    "sha256": "43aae168748d7ae3ca4e12e9585a9cafacf607bf4f3671640a8a65183d03f01a"
+  },
+  "evidence_sources": [
+    {
+      "path": "requirements.md",
+      "sha256": "c4f373791b426f0040c22791c038e85e361d2067222333aaae114acbe268d5f7"
+    },
+    {
+      "path": "history.json",
+      "sha256": "dc7985a32d2c1e05ca46c3166cab6b9ad4a3b24a96824c03d6442645040eb84f"
+    }
+  ],
+  "completeness": {
+    "dependencies": true,
+    "test_mapping": true,
+    "history": true
+  },
+  "components": [
+    {
+      "component_id": "orders",
+      "depends_on": [],
+      "evidence": [
+        "requirements.md#orders"
+      ]
+    },
+    {
+      "component_id": "export",
+      "depends_on": [
+        "orders"
+      ],
+      "evidence": [
+        "requirements.md#export"
+      ]
+    },
+    {
+      "component_id": "auth",
+      "depends_on": [],
+      "evidence": [
+        "requirements.md#auth"
+      ]
+    },
+    {
+      "component_id": "payment",
+      "depends_on": [],
+      "evidence": [
+        "requirements.md#payment"
+      ]
+    },
+    {
+      "component_id": "invoice",
+      "depends_on": [],
+      "evidence": [
+        "requirements.md#invoice"
+      ]
+    },
+    {
+      "component_id": "shipping",
+      "depends_on": [],
+      "evidence": [
+        "requirements.md#shipping"
+      ]
+    }
+  ],
+  "change_components": [
+    {
+      "change_id": "CH-001",
+      "component_ids": [
+        "orders"
+      ],
+      "evidence": [
+        "changes.json#CH-001",
+        "requirements.md#orders"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "scenario_id": "TC-ORDER",
+      "component_ids": [
+        "orders"
+      ],
+      "mapping_status": "confirmed",
+      "evidence": [
+        "catalog.json#TC-ORDER"
+      ],
+      "duration_seconds": 10
+    },
+    {
+      "scenario_id": "TC-EXPORT",
+      "component_ids": [
+        "export"
+      ],
+      "mapping_status": "confirmed",
+      "evidence": [
+        "catalog.json#TC-EXPORT"
+      ],
+      "duration_seconds": 10
+    },
+    {
+      "scenario_id": "TC-LOGIN",
+      "component_ids": [
+        "auth"
+      ],
+      "mapping_status": "confirmed",
+      "evidence": [
+        "catalog.json#TC-LOGIN"
+      ],
+      "duration_seconds": 10
+    },
+    {
+      "scenario_id": "TC-PAY",
+      "component_ids": [
+        "payment"
+      ],
+      "mapping_status": "confirmed",
+      "evidence": [
+        "catalog.json#TC-PAY"
+      ],
+      "duration_seconds": 10
+    },
+    {
+      "scenario_id": "TC-NEW",
+      "component_ids": [
+        "invoice"
+      ],
+      "mapping_status": "confirmed",
+      "evidence": [
+        "catalog.json#TC-NEW"
+      ],
+      "duration_seconds": 10
+    },
+    {
+      "scenario_id": "TC-FAIL",
+      "component_ids": [
+        "shipping"
+      ],
+      "mapping_status": "confirmed",
+      "evidence": [
+        "catalog.json#TC-FAIL"
+      ],
+      "duration_seconds": 10
+    },
+    {
+      "scenario_id": "TC-UNKNOWN",
+      "component_ids": [],
+      "mapping_status": "unknown",
+      "evidence": [
+        "catalog.json#TC-UNKNOWN"
+      ],
+      "duration_seconds": null
+    }
+  ],
+  "policy": {
+    "mandatory_scenario_ids": [
+      "TC-LOGIN"
+    ],
+    "new_scenario_ids": [
+      "TC-NEW"
+    ],
+    "previously_failed_scenario_ids": [
+      "TC-FAIL"
+    ],
+    "force_full": false,
+    "evidence": [
+      "requirements.md#smoke",
+      "history.json"
+    ]
+  }
+}

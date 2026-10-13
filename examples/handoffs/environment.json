@@ -1,0 +1,27 @@
+{
+  "task_id": "QA-HANDOFF",
+  "request_id": "env-1",
+  "agent": "qa-test-env-configurator",
+  "event": "environment_partial",
+  "summary": "Синтетический пример передачи результата; продуктовые действия не выполнялись.",
+  "artifacts": [
+    "evidence.txt"
+  ],
+  "blockers": [],
+  "payload": {
+    "environment_id": "synthetic",
+    "product_version": "fixture-1",
+    "verified_capabilities": [
+      "Синтетический сервис заказов доступен"
+    ],
+    "limitations": [
+      "Синтетическая авторизация недоступна"
+    ],
+    "ready_scenarios": [
+      "TC-001"
+    ],
+    "blocked_scenarios": [
+      "TC-002"
+    ]
+  }
+}

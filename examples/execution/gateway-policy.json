@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "server_command": ["/absolute/path/to/approved-stdio-mcp-server"],
+  "max_write_actions": 1,
+  "max_action_attempts": 2,
+  "call_timeout_seconds": 30,
+  "tools": {
+    "create_ticket": {
+      "effect": "write",
+      "allowed_arguments": ["project", "title"],
+      "constraints": {"/project": "YOUR_TEST_PROJECT"},
+      "idempotency_argument": "client_id",
+      "readback": {
+        "tool": "find_ticket",
+        "arguments": {"project": {"literal": "YOUR_TEST_PROJECT"}, "client_id": {"action_key": true}},
+        "presence_pointer": "/found",
+        "authoritative_absence": false
+      }
+    },
+    "find_ticket": {
+      "effect": "read",
+      "allowed_arguments": ["project", "client_id"],
+      "constraints": {"/project": "YOUR_TEST_PROJECT"}
+    }
+  }
+}

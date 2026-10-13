@@ -1,0 +1,151 @@
+{
+  "schema_version": 2,
+  "task_id": "QA-STUB-DEMO",
+  "request_id": "QA-STUB-DEMO-1",
+  "environment_id": "fixture-stage",
+  "mcp_server": "sbermock",
+  "project_id": "fixture-project",
+  "namespace": "QA-STUB-DEMO:run1",
+  "scenario_ids": [
+    "TC-REST",
+    "TC-KAFKA"
+  ],
+  "stubs": [
+    {
+      "case_id": "REST-APPROVED",
+      "stub_id": "fixture-rest-1",
+      "kind": "REST",
+      "scenario_ids": [
+        "TC-REST"
+      ],
+      "requirement_source": "requirements.md#rest",
+      "purpose": "Внешний сервис отвечает approved для назначенного заказа",
+      "definition": {
+        "request": {
+          "method": "POST",
+          "path": "/decision",
+          "body": {
+            "order_id": "run1-order1"
+          }
+        },
+        "response": {
+          "status": 200,
+          "body": {
+            "decision": "approved"
+          }
+        }
+      },
+      "operation": "created",
+      "cleanup": {
+        "action": "delete",
+        "reason": "После зависимого прогона удалить только fixture-rest-1"
+      },
+      "resolved_at": "2026-10-07T11:59:30+03:00",
+      "probes": {
+        "positive": {
+          "input": {
+            "method": "POST",
+            "path": "/decision",
+            "body": {
+              "order_id": "run1-order1"
+            }
+          },
+          "expected": {
+            "status": 200,
+            "body": {
+              "decision": "approved"
+            }
+          }
+        },
+        "negative": {
+          "input": {
+            "method": "POST",
+            "path": "/decision",
+            "body": {
+              "order_id": "different-order"
+            }
+          },
+          "expected": {
+            "matched": false,
+            "status": 404
+          }
+        }
+      }
+    },
+    {
+      "case_id": "KAFKA-READY",
+      "stub_id": "fixture-kafka-1",
+      "kind": "KAFKA",
+      "scenario_ids": [
+        "TC-KAFKA"
+      ],
+      "requirement_source": "requirements.md#kafka",
+      "purpose": "На назначенный ключ сформировать событие готовности с той же корреляцией",
+      "definition": {
+        "mode": "reactive",
+        "input": {
+          "topic": "fixture.requests",
+          "key": "run1-order1"
+        },
+        "output": {
+          "topic": "fixture.responses",
+          "key": "run1-order1",
+          "value": {
+            "state": "ready",
+            "correlation_id": "run1-c1"
+          }
+        }
+      },
+      "operation": "created",
+      "cleanup": {
+        "action": "delete",
+        "reason": "После зависимого прогона удалить только fixture-kafka-1; топики не удалять"
+      },
+      "resolved_at": "2026-10-07T11:59:30+03:00",
+      "probes": {
+        "positive": {
+          "input": {
+            "topic": "fixture.requests",
+            "key": "run1-order1",
+            "value": {
+              "correlation_id": "run1-c1"
+            }
+          },
+          "expected": {
+            "messages": [
+              {
+                "topic": "fixture.responses",
+                "key": "run1-order1",
+                "value": {
+                  "state": "ready",
+                  "correlation_id": "run1-c1"
+                }
+              }
+            ]
+          },
+          "correlation_id": "run1-c1",
+          "window_ms": 200
+        },
+        "negative": {
+          "input": {
+            "topic": "fixture.requests",
+            "key": "different-order",
+            "value": {
+              "correlation_id": "run1-negative"
+            }
+          },
+          "expected": {
+            "messages": [],
+            "observation_window_ms": 200
+          },
+          "correlation_id": "run1-negative",
+          "window_ms": 200
+        }
+      }
+    }
+  ],
+  "provider": "sbermock",
+  "prepared_at": "2026-10-07T11:59:00+03:00",
+  "assignment_sha256": "d575500a0df2f264e01b7e82c05302529ff27f7e2ffdd1e2bdf8be14dddccb94",
+  "verification_started_at": "2026-10-07T11:59:40+03:00"
+}

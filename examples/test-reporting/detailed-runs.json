@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "task_id": "QA-REPORT-DEMO",
+  "runs": [
+    {
+      "run_id": "RUN-DETAILED-1",
+      "configuration_id": "CHECKOUT-ON",
+      "observed_at": "2020-01-01T10:00:00+00:00",
+      "scenario_ids": [
+        "TC-PAY",
+        "TC-CANCEL"
+      ],
+      "result_artifact": "detailed-feature.json",
+      "requirements_revision": "fixture-R1",
+      "context": {
+        "role": "buyer",
+        "channel": "UI",
+        "browser": "Chrome",
+        "data_profile": "own-paid-order",
+        "integration_state": {
+          "refund_service": "unavailable"
+        }
+      },
+      "configuration_evidence": [
+        "snapshot.json"
+      ],
+      "feature_flags": {
+        "new_checkout": {
+          "value": true,
+          "status": "confirmed",
+          "source": "snapshot.json"
+        }
+      },
+      "review": {
+        "status": "passed",
+        "source": "detailed-review.json"
+      },
+      "supersedes": null
+    }
+  ]
+}

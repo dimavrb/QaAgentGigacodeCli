@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "test_cases": [
+    {
+      "scenario_id": "EX-API-005",
+      "title": "API списка заказов — запрошена вторая страница — возвращён нужный срез",
+      "requirement_source": "Учебный пример, не требование приложения: GET /orders?page=2&pageSize=2&sort=id:asc возвращает total=5 и items=[ORDER-03,ORDER-04] для набора ORDER-01…ORDER-05",
+      "preconditions": [
+        "Тестовый пользователь имеет ровно пять заказов ORDER-01…ORDER-05",
+        "Состав набора и сортировка стабильны; параллельные изменения исключены"
+      ],
+      "steps": [
+        {
+          "name": "Отправить GET /orders?page=2&pageSize=2&sort=id:asc с тестовым токеном",
+          "expected_result": "Получен HTTP 200; total равен 5; items содержит ровно ORDER-03 и ORDER-04 в этом порядке; ORDER-01, ORDER-02 и ORDER-05 отсутствуют"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+СИНТЕТИЧЕСКИЙ пример, не запуск приложения пользователя.
+fixture-stage, fixture-1, R1, D1; покупатель.
+GET /admin/users => HTTP 200, users=[fixture-user].
+Trace: admin_users -> list_users_without_role_check; роль buyer.

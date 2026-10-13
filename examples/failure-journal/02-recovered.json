@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "event_id": "DEMO-1-recovered",
+  "incident_id": "DEMO-1",
+  "occurred_at": "2020-01-01T11:00:00+00:00",
+  "actor": "qa-agent",
+  "task_id": "QA-DEMO-1",
+  "request_id": "feature-1",
+  "agent": "qa-feature-tester",
+  "agent_version": "1.5",
+  "stage": "feature_testing",
+  "scope_kind": "synthetic",
+  "summary": "Отмена заказа заблокирована недоступным сервисом",
+  "symptom": "blocked_execution",
+  "impact": "Две зависимые проверки не выполнены; независимые проверки могут продолжаться",
+  "scenario_ids": [
+    "TC-1",
+    "TC-2"
+  ],
+  "context": {
+    "environment_id": "synthetic",
+    "product_version": "fixture-1",
+    "model": null
+  },
+  "evidence": [
+    "observations.txt"
+  ],
+  "cause": {
+    "status": "confirmed",
+    "category": "environment",
+    "description": "В учебной сцене сервис возврата был недоступен",
+    "evidence": [
+      "observations.txt"
+    ]
+  },
+  "recovery": {
+    "outcome": "verified",
+    "action": "В учебной сцене восстановлен сервис и повторно проверена готовность",
+    "result": "Учебный сервис отвечает; исходный блокер снят, выполнение сценариев оценивается отдельно",
+    "evidence": [
+      "recovery.txt"
+    ]
+  },
+  "regression_case": {
+    "status": "candidate",
+    "reason": "Проверить сохранение частичного покрытия при общем блокере",
+    "evidence": []
+  }
+}

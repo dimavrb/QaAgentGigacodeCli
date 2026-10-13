@@ -1,0 +1,35 @@
+[
+  {
+    "route": "analysis-plan",
+    "upstream": "../analysis/result.json",
+    "downstream": "plan.json",
+    "scenario_ids": [
+      "TC-001",
+      "TC-002"
+    ]
+  },
+  {
+    "route": "readiness-feature",
+    "upstream": "environment.json",
+    "data": "data.json",
+    "downstream": "feature.json",
+    "scenario_ids": [
+      "TC-001",
+      "TC-002"
+    ]
+  },
+  {
+    "route": "automation-review",
+    "upstream": "automation.json",
+    "downstream": "review.json",
+    "scenario_ids": [
+      "TC-001"
+    ]
+  },
+  {
+    "route": "investigation-jira",
+    "upstream": "../investigations/confirmed/result.json",
+    "state": "../investigations/confirmed/state.json",
+    "downstream": "jira.json"
+  }
+]

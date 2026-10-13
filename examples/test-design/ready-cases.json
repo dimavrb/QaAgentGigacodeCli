@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "test_cases": [
+    {
+      "scenario_id": "TC-ACCESS",
+      "title": "Заказ — роль и владелец из набора параметров — доступ соответствует правилу",
+      "requirement_source": "requirements.md#access",
+      "preconditions": [
+        "Учебные заказы DATA-OWN и DATA-OTHER принадлежат текущему и другому пользователю соответственно; подготовка реального стенда требует отдельного подтверждения",
+        "Аккаунт имеет роль {{role}}",
+        "Заказ {{record_id}} имеет владельца {{owner}} относительно аккаунта",
+        "Канал {{channel}}; браузер {{browser}} используется для UI, none означает отсутствие браузера для API"
+      ],
+      "steps": [
+        {
+          "name": "Открыть заказ {{record_id}} через канал {{channel}} под выбранным аккаунтом",
+          "expected_result": "{{observation}}"
+        }
+      ],
+      "parameter_sets": [
+        {
+          "parameter_set_id": "P-C-ACCESS-DENIED",
+          "values": {
+            "role": "user",
+            "owner": "other",
+            "channel": "api",
+            "browser": "none"
+          },
+          "parameters": {
+            "record_id": "DATA-OTHER",
+            "observation": "Заказ DATA-OTHER и его поля отсутствуют в ответе API или отображаемых данных UI; успешный транспорт сам по себе не подтверждает запрет"
+          }
+        },
+        {
+          "parameter_set_id": "P-COMB-001",
+          "values": {
+            "browser": "chrome",
+            "channel": "ui",
+            "owner": "own",
+            "role": "user"
+          },
+          "parameters": {
+            "record_id": "DATA-OWN",
+            "observation": "В данных ответа API или отображаемых данных UI присутствует именно заказ DATA-OWN с ожидаемым владельцем; пустой результат не считается успехом"
+          }
+        },
+        {
+          "parameter_set_id": "P-COMB-002",
+          "values": {
+            "browser": "firefox",
+            "channel": "ui",
+            "owner": "other",
+            "role": "admin"
+          },
+          "parameters": {
+            "record_id": "DATA-OTHER",
+            "observation": "В данных ответа API или отображаемых данных UI присутствует именно заказ DATA-OTHER с ожидаемым владельцем; пустой результат не считается успехом"
+          }
+        },
+        {
+          "parameter_set_id": "P-COMB-003",
+          "values": {
+            "browser": "none",
+            "channel": "api",
+            "owner": "own",
+            "role": "admin"
+          },
+          "parameters": {
+            "record_id": "DATA-OWN",
+            "observation": "В данных ответа API или отображаемых данных UI присутствует именно заказ DATA-OWN с ожидаемым владельцем; пустой результат не считается успехом"
+          }
+        },
+        {
+          "parameter_set_id": "P-COMB-004",
+          "values": {
+            "browser": "chrome",
+            "channel": "ui",
+            "owner": "own",
+            "role": "admin"
+          },
+          "parameters": {
+            "record_id": "DATA-OWN",
+            "observation": "В данных ответа API или отображаемых данных UI присутствует именно заказ DATA-OWN с ожидаемым владельцем; пустой результат не считается успехом"
+          }
+        },
+        {
+          "parameter_set_id": "P-COMB-005",
+          "values": {
+            "browser": "chrome",
+            "channel": "ui",
+            "owner": "other",
+            "role": "user"
+          },
+          "parameters": {
+            "record_id": "DATA-OTHER",
+            "observation": "Заказ DATA-OTHER и его поля отсутствуют в ответе API или отображаемых данных UI; успешный транспорт сам по себе не подтверждает запрет"
+          }
+        },
+        {
+          "parameter_set_id": "P-COMB-006",
+          "values": {
+            "browser": "firefox",
+            "channel": "ui",
+            "owner": "own",
+            "role": "user"
+          },
+          "parameters": {
+            "record_id": "DATA-OWN",
+            "observation": "В данных ответа API или отображаемых данных UI присутствует именно заказ DATA-OWN с ожидаемым владельцем; пустой результат не считается успехом"
+          }
+        },
+        {
+          "parameter_set_id": "P-COMB-007",
+          "values": {
+            "browser": "none",
+            "channel": "api",
+            "owner": "own",
+            "role": "user"
+          },
+          "parameters": {
+            "record_id": "DATA-OWN",
+            "observation": "В данных ответа API или отображаемых данных UI присутствует именно заказ DATA-OWN с ожидаемым владельцем; пустой результат не считается успехом"
+          }
+        },
+        {
+          "parameter_set_id": "P-COMB-008",
+          "values": {
+            "browser": "none",
+            "channel": "api",
+            "owner": "other",
+            "role": "admin"
+          },
+          "parameters": {
+            "record_id": "DATA-OTHER",
+            "observation": "В данных ответа API или отображаемых данных UI присутствует именно заказ DATA-OTHER с ожидаемым владельцем; пустой результат не считается успехом"
+          }
+        }
+      ]
+    }
+  ]
+}

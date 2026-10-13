@@ -1,0 +1,32 @@
+{
+  "task_id": "QA-STUB-DEMO",
+  "request_id": "QA-STUB-DEMO-1",
+  "agent": "qa-stub-builder",
+  "event": "stubs_ready",
+  "summary": "Учебные REST-ответ и Kafka-реакция готовы для двух сценариев; реальный sbermock не вызывался",
+  "artifacts": [
+    "profile.json",
+    "verification.json"
+  ],
+  "blockers": [],
+  "payload": {
+    "environment_id": "fixture-stage",
+    "mcp_server": "sbermock",
+    "project_id": "fixture-project",
+    "namespace": "QA-STUB-DEMO:run1",
+    "profile_artifact": "profile.json",
+    "verification_artifact": "verification.json",
+    "scenario_ids": [
+      "TC-REST",
+      "TC-KAFKA"
+    ],
+    "blocked_scenarios": [],
+    "cleanup": "После зависимых проверок удалить только сохранённые созданные ID, не удаляя топики; проверить остатки",
+    "limitations": [
+      "Все материалы синтетические; подключение MCP и реальное приложение не проверялись",
+      "Готовность заглушек не подтверждает продукт или реальную интеграцию",
+      "Kafka: отсутствие ответа наблюдалось только в учебном окне 200 мс"
+    ],
+    "provider": "sbermock"
+  }
+}

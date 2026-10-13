@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "test_cases": [
+    {
+      "scenario_id": "EX-API-002",
+      "title": "API заказов — отсутствует обязательное поле quantity — запрос отклонён",
+      "requirement_source": "Учебный пример, не требование приложения: quantity обязательно; при его отсутствии POST /orders возвращает 400 с code=VALIDATION_ERROR и fields.quantity; заказ не создаётся",
+      "preconditions": [
+        "Тестовый покупатель авторизован; SKU-EXAMPLE существует",
+        "Список ID заказов пользователя зафиксирован; параллельное создание заказов исключено"
+      ],
+      "steps": [
+        {
+          "name": "Отправить POST /orders с JSON {\"sku\":\"SKU-EXAMPLE\"} и тестовым токеном покупателя",
+          "expected_result": "Получен HTTP 400; code равен VALIDATION_ERROR; fields.quantity указывает отсутствие обязательного поля"
+        },
+        {
+          "name": "Получить список ID заказов тестового покупателя",
+          "expected_result": "Список совпадает с исходным; новый заказ не появился"
+        }
+      ]
+    }
+  ]
+}

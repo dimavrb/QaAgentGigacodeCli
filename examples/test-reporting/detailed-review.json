@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "task_id": "QA-REPORT-DEMO",
+  "request_id": "feature-detailed-1",
+  "reviewer": "qa-agent",
+  "decision": "passed",
+  "result_sha256": "5cf03d89f86685c6fa47f5484349ae7232306f373e5eb8c1b367e2e34a057213",
+  "checks": {
+    "expected_source": {
+      "status": "passed",
+      "note": "Учебная проверка согласованности синтетических материалов; не приёмка реального продукта"
+    },
+    "actual_execution": {
+      "status": "passed",
+      "note": "Учебная проверка согласованности синтетических материалов; не приёмка реального продукта"
+    },
+    "configuration_context": {
+      "status": "passed",
+      "note": "Учебная проверка согласованности синтетических материалов; не приёмка реального продукта"
+    },
+    "evidence_support": {
+      "status": "passed",
+      "note": "Учебная проверка согласованности синтетических материалов; не приёмка реального продукта"
+    }
+  },
+  "execution_context_sha256": "fc2177763314e211b092d6a554f87d8e964c382c69a0106d1c4bba358b8d7bfc",
+  "artifact_sha256": {
+    "requirements.md": "b60e4ebfd787fb3a444851ff8388f06faadc943c360eb5892a778148929c6d75",
+    "snapshot.json": "17d29049e7a27411d7939ea1cda026df3f171af12c92735e4d49a032eacfd8a2",
+    "detailed-evidence.txt": "1eda9cfee76cacf1043cb1bc37a39e16c97e18ee3085403de745680798ecaf6d"
+  }
+}

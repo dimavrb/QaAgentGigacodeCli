@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "task_id": "QA-STUB-CONFIG",
+  "request_id": "QA-STUB-CONFIG-1",
+  "environment_id": "fixture-stage",
+  "mcp_server": "sbermock",
+  "project_id": "fixture-project",
+  "namespace": "QA-STUB-CONFIG:run1",
+  "profile_sha256": "3d6e87e3743d42fa97788c7ea65ebadbee82268b683ec5663865c5bb377bc0c1",
+  "checks": [
+    {
+      "case_id": "REST-APPROVED",
+      "status": "configured",
+      "reason": "configure_only: runtime-пробы и Kafka-публикации не выполнялись",
+      "readback": {
+        "artifact": "observations/rest-readback.json",
+        "sha256": "0e93f1935053c6280d0aeb8b682a17e14fe9797cec8d15d5213a2e7b768ae279"
+      }
+    },
+    {
+      "case_id": "KAFKA-READY",
+      "status": "configured",
+      "reason": "configure_only: runtime-пробы и Kafka-публикации не выполнялись",
+      "readback": {
+        "artifact": "observations/kafka-readback.json",
+        "sha256": "d5c3fc4a6525ea58a2f709cd3076ca88f14244289e8a0bcd1315d1d8c33fda3f"
+      }
+    }
+  ],
+  "limitations": [
+    "Синтетический пример; MCP не вызывался",
+    "Конфигурация прочитана; runtime и продукт не проверялись"
+  ],
+  "provider": "sbermock",
+  "assignment_sha256": "788f96d6998e9bb33a618cc718cbfe1a81daa52548b8ba8132b3a2c65f51082d"
+}

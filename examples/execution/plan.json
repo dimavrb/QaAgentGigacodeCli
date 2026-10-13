@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "task_state": "../../.qa-agent-state/tasks/QA-MANAGED/task.json",
+  "workspace": "../..",
+  "adapter": {"kind": "gigacode", "executable": "gigacode"},
+  "scope_kind": "synthetic",
+  "failure_journal": "../../artifacts/failures/agent-errors.jsonl",
+  "max_active_seconds": 600,
+  "heartbeat_timeout_seconds": 15,
+  "auto_apply_answers": false,
+  "steps": [{
+    "step_id": "analysis-1",
+    "assignment": {
+      "task_id": "QA-MANAGED",
+      "request_id": "QA-MANAGED-analysis-1",
+      "agent": "qa-analyst",
+      "stage": "analysis",
+      "goal": "Разобрать синтетическое правило доступа по единственному источнику; неизвестное сохранить явно",
+      "acceptance_criteria": ["Проверяемое правило, источник, риски и неизвестные условия"],
+      "criterion_ids": ["C-ANALYSIS"],
+      "stop_condition": "Вернуть analysis_ready или честный blocked без выполнения продуктовых действий",
+      "expected_artifact": "QA JSON; исходный requirements.md допустим как ссылка на требование",
+      "result_path": "../../artifacts/execution/demo/analysis-result.json",
+      "inputs": ["requirements.md"],
+      "depends_on": []
+    },
+    "instruction_paths": ["examples/analysis/result.json"],
+    "wait_for_questionnaire_ids": [],
+    "retry_safe": false,
+    "retry_on": [],
+    "max_attempts": 1,
+    "max_identical_failures": 2,
+    "max_wall_seconds": 300,
+    "max_session_turns": 10
+  }]
+}

@@ -1,0 +1,39 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@0.0.83",
+        "--config",
+        ".gigacode/playwright.config.json"
+      ],
+      "timeout": 90000,
+      "includeTools": [
+        "browser_navigate",
+        "browser_navigate_back",
+        "browser_tabs",
+        "browser_snapshot",
+        "browser_find",
+        "browser_click",
+        "browser_fill_form",
+        "browser_type",
+        "browser_select_option",
+        "browser_press_key",
+        "browser_hover",
+        "browser_drag",
+        "browser_handle_dialog",
+        "browser_file_upload",
+        "browser_wait_for",
+        "browser_evaluate",
+        "browser_run_code_unsafe",
+        "browser_resize",
+        "browser_console_messages",
+        "browser_network_requests",
+        "browser_network_request",
+        "browser_take_screenshot",
+        "browser_close"
+      ]
+    }
+  }
+}

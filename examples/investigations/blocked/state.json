@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "task_id": "QA-FIXTURE",
+  "request_id": "QA-FIXTURE-1",
+  "updated_at": "2026-10-02T10:00:00+03:00",
+  "execution_status": "waiting",
+  "expected_source": "../requirements.md",
+  "context": {
+    "environment_id": "fixture-stage",
+    "product_version": "fixture-1",
+    "requirements_revision": "R1",
+    "data_revision": "D1"
+  },
+  "hypotheses": [
+    {
+      "hypothesis_id": "H1",
+      "statement": "Покупатель получает список пользователей без административных прав",
+      "status": "open"
+    }
+  ],
+  "attempts": [
+    {
+      "attempt_id": "A1",
+      "request_id": "QA-FIXTURE-1",
+      "hypothesis_id": "H1",
+      "started_at": "2026-10-02T09:59:00+03:00",
+      "context": {
+        "environment_id": "fixture-stage",
+        "product_version": "fixture-1",
+        "requirements_revision": "R1",
+        "data_revision": "D1"
+      },
+      "preconditions": [
+        "Тестовая роль покупателя без административных прав"
+      ],
+      "steps": [
+        "Отправить GET /admin/users"
+      ],
+      "status": "blocked",
+      "observations": [
+        "Соединение со стендом недоступно"
+      ],
+      "actual_result": "Соединение со стендом недоступно",
+      "evidence_ids": [
+        "E1"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "E1",
+      "attempt_id": "A1",
+      "path": "observation.txt",
+      "description": "Синтетическое наблюдение ответа в A1",
+      "sha256": "06fe1892f55b7e2fb5e85b3b357a9cf9096b9102c10033be7e50a0f4b954f9b1"
+    }
+  ],
+  "blockers": [
+    "Стенд недоступен"
+  ],
+  "next_step": {
+    "goal": "Проверить восстановление стенда",
+    "stop_condition": "Остановиться при недостатке доступа или новом расхождении",
+    "expected_artifact": "Новая попытка в состоянии и относящееся наблюдение"
+  },
+  "used_request_ids": [
+    "QA-FIXTURE-1"
+  ]
+}

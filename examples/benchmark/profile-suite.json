@@ -1,0 +1,345 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "selection",
+      "prompt_file": "prompts/01-selection.md",
+      "checks": [
+        {
+          "check_id": "coverage",
+          "expectation": "R-1, R-2 и R-3 имеют сценарии; нехватка времени не убирает обязательный критерий."
+        },
+        {
+          "check_id": "duplicates",
+          "expectation": "A/B предложены к объединению с причиной; пустой результат и чужой владелец остаются отдельными проверками."
+        },
+        {
+          "check_id": "priority",
+          "expectation": "Приоритет обоснован последствиями, риск раскрытия чужих заказов выделен; вероятности не выдуманы."
+        },
+        {
+          "check_id": "scope",
+          "expectation": "Проверка скорости вне объёма, норматив не выдуман; каталог не содержит неподтверждённого порога."
+        }
+      ]
+    },
+    {
+      "case_id": "unknown",
+      "prompt_file": "prompts/02-unknown.md",
+      "checks": [
+        {
+          "check_id": "independent",
+          "expectation": "R-1 детализирован в каталоге; отсутствующая матрица не останавливает готовую независимую часть."
+        },
+        {
+          "check_id": "question",
+          "expectation": "Вопрос по правам связан с R-2 и блокирует планирование; отсутствующий ответ не отмечен решённым."
+        },
+        {
+          "check_id": "no_guess",
+          "expectation": "Нет придуманного разрешения/запрета или кейса R-2 с неизвестным ожиданием."
+        },
+        {
+          "check_id": "partial",
+          "expectation": "Результат plan_partial, а не plan_ready; артефакты и неизвестное поведение явно указаны."
+        }
+      ]
+    },
+    {
+      "case_id": "assertion",
+      "prompt_file": "prompts/03-assertion.md",
+      "checks": [
+        {
+          "check_id": "false_pass",
+          "expectation": "Объяснено, что 200 и непустой список не исключают неоплаченные и чужие заказы."
+        },
+        {
+          "check_id": "fix",
+          "expectation": "Предложена проверка статуса и владельца возвращённых заказов на смешанных данных, а не только числа строк."
+        },
+        {
+          "check_id": "location",
+          "expectation": "Замечание привязано к tests/test_orders.py и учебная-v1, требует изменения проверки."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Не заявлены запуск теста, подтверждённый продуктовый дефект или успешное ревью; ограничение отсутствия запуска сохранено."
+        }
+      ]
+    },
+    {
+      "case_id": "message",
+      "prompt_file": "prompts/04-message.md",
+      "checks": [
+        {
+          "check_id": "meaning",
+          "expectation": "В первых двух предложениях ясно: фильтр оставляет заказ со статусом Новый вопреки R-1."
+        },
+        {
+          "check_id": "impact",
+          "expectation": "Влияние связано с неверным составом выдачи; причина, ущерб и охват не выдуманы."
+        },
+        {
+          "check_id": "evidence",
+          "expectation": "Основание — предоставленная учебная запись TC-001 и R-1; не заявлен собственный реальный запуск."
+        },
+        {
+          "check_id": "action",
+          "expectation": "Предложение следующего шага не выдано за создание Jira; нет длинного журнала или вставки JSON."
+        }
+      ]
+    },
+    {
+      "case_id": "blocker",
+      "prompt_file": "prompts/05-blocker.md",
+      "checks": [
+        {
+          "check_id": "group",
+          "expectation": "Один подтверждённый блокер связан с обоими TC-PAY; повторные заведомо невыполнимые оплаты не предложены."
+        },
+        {
+          "check_id": "results",
+          "expectation": "Сохранены все три ID: платежи blocked, TC-FILTER passed по учебной записи; нет объявления всей фичи успешной."
+        },
+        {
+          "check_id": "resume",
+          "expectation": "При прежних условиях новое назначение содержит только TC-PAY-1/2; старый TC-FILTER не выдан за новый запуск."
+        },
+        {
+          "check_id": "changed_build",
+          "expectation": "На сборке 43 при неизвестном влиянии требуется перепроверка TC-FILTER; старый успех сохраняется только как история."
+        }
+      ]
+    },
+    {
+      "case_id": "prerequisite",
+      "agent": "qa-test-plan-writer",
+      "prompt_file": "prompts/06-prerequisite.md",
+      "checks": [
+        {
+          "check_id": "keep_risk",
+          "expectation": "TC-FOREIGN сохранён с риском раскрытия, не удалён из покрытия."
+        },
+        {
+          "check_id": "two_readiness",
+          "expectation": "Оба ожидания известны; исполнение TC-FOREIGN требует аккаунта/заказа B. Недоступность данных не объявлена неизвестным правилом."
+        },
+        {
+          "check_id": "independent",
+          "expectation": "TC-OWN можно детализировать независимо от B; успешный запуск не заявлен."
+        },
+        {
+          "check_id": "no_workaround",
+          "expectation": "Нет выдуманного API, admin обхода, реальных действий или 403 как наблюдённого факта."
+        }
+      ]
+    },
+    {
+      "case_id": "observability",
+      "agent": "qa-test-plan-writer",
+      "prompt_file": "prompts/07-observability.md",
+      "checks": [
+        {
+          "check_id": "limit",
+          "expectation": "Сообщение/один округлённый баланс UI не подтверждают SQL rollback или ledger."
+        },
+        {
+          "check_id": "preserve",
+          "expectation": "R-1 и риск остаются в покрытии; кейс переработан/заблокирован, а не молча удалён."
+        },
+        {
+          "check_id": "prerequisite",
+          "expectation": "Нужен подтверждённый способ наблюдать оба баланса/ledger и изолированный сценарий; доступ не выдуман."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Нет утверждения о запуске, дефекте или доказанном внутреннем rollback."
+        }
+      ]
+    },
+    {
+      "case_id": "contradiction",
+      "agent": "qa-analyst",
+      "prompt_file": "prompts/08-contradiction.md",
+      "checks": [
+        {
+          "check_id": "conflict",
+          "expectation": "Явно выделены оба противоречащих источника и отсутствие правила приоритета."
+        },
+        {
+          "check_id": "no_guess",
+          "expectation": "Нет придуманного разрешения/запрета или 403/204."
+        },
+        {
+          "check_id": "question",
+          "expectation": "Вопрос связан с R-1 и необходим для готового ожидания удаления."
+        },
+        {
+          "check_id": "continue",
+          "expectation": "R-2 детализируется независимо; вся работа не останавливается и не объявляется готовой."
+        }
+      ]
+    },
+    {
+      "case_id": "empty",
+      "agent": "qa-autotest-reviewer",
+      "prompt_file": "prompts/09-empty.md",
+      "checks": [
+        {
+          "check_id": "empty",
+          "expectation": "Показано, что пустой список проходит оба all, нарушая полноту R-1."
+        },
+        {
+          "check_id": "positive",
+          "expectation": "Предложена проверка ровно ORDER-11/его ID и отсутствие ORDER-12/13; не только len>0."
+        },
+        {
+          "check_id": "binding",
+          "expectation": "Замечание связано с R-1, tests/test_filter.py и fixture-v1."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Контрпример мысленный; запуск/дефект/успешное runtime ревью не заявлены."
+        }
+      ]
+    },
+    {
+      "case_id": "data-composition",
+      "agent": "qa-test-data-builder",
+      "prompt_file": "prompts/data-composition.md",
+      "checks": [
+        {
+          "check_id": "distinguish",
+          "expectation": "Есть положительный A/paid, отрицательные A/new и B/paid; назначение каждого связано с различимой ошибкой."
+        },
+        {
+          "check_id": "invariants",
+          "expectation": "Рецепт сохраняет платежные связи через известную фабрику, не заменяет создание произвольной правкой SQL."
+        },
+        {
+          "check_id": "oracle",
+          "expectation": "Наблюдение требует точного состава/ID нужных записей, исключает пустой и лишний результат; не только непустой список."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Рецепт не объявлен data_ready или выполненным; недоступность стенда сохранена."
+        }
+      ]
+    },
+    {
+      "case_id": "data-retry",
+      "agent": "qa-test-data-builder",
+      "prompt_file": "prompts/data-retry.md",
+      "checks": [
+        {
+          "check_id": "reconcile",
+          "expectation": "До нового создания требуется find_by_request_id=req-17 и сверка состояния; timeout не объявлен отсутствием заказа."
+        },
+        {
+          "check_id": "isolation",
+          "expectation": "Изменяемые сущности и namespace различают run/worker/test/attempt; общий изменяемый заказ не используется без восстановления."
+        },
+        {
+          "check_id": "scope",
+          "expectation": "Нет общего reset или удаления чужих данных, очистка ограничена подтверждёнными ID попытки."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Не заявлены результаты поиска, создание, очистка или готовность до фактических ответов."
+        }
+      ]
+    },
+    {
+      "case_id": "data-partial",
+      "agent": "qa-test-data-builder",
+      "prompt_file": "prompts/data-partial.md",
+      "checks": [
+        {
+          "check_id": "partial",
+          "expectation": "TC-OWN готов, TC-PAY заблокирован; сохраняются все назначенные ID и непроверенная платежная связь."
+        },
+        {
+          "check_id": "retain",
+          "expectation": "O-1/O-2 немедленно учтены как ресурсы текущей попытки, частичный сбой не теряет O-2."
+        },
+        {
+          "check_id": "cleanup",
+          "expectation": "Очистка после использования, только O-1/O-2 по принадлежности; O-OTHER не удаляется, ошибки cleanup отдельно от исходного timeout."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Ответ создания O-2 не выдан за проверенную связь; новый read/cleanup не объявлены выполненными."
+        }
+      ]
+    },
+    {
+      "case_id": "stub-configured",
+      "agent": "qa-stub-builder",
+      "prompt_file": "prompts/stub-configured.md",
+      "checks": [
+        {
+          "check_id": "stage",
+          "expectation": "Результат stubs_configured с обоими configured_scenarios, без выдачи execution-ready scenario_ids/stubs_ready."
+        },
+        {
+          "check_id": "permission",
+          "expectation": "Kafka-публикация и runtime-проба не предложены к исполнению в этом назначении; для verify требуется соответствующее назначение."
+        },
+        {
+          "check_id": "separation",
+          "expectation": "Создание/readback не объявлены проверкой поведения заглушки или реальной интеграции продукта."
+        },
+        {
+          "check_id": "cleanup",
+          "expectation": "Сохранены ID/namespace и план очистки после зависимых проверок; нет факта выполненной очистки."
+        }
+      ]
+    },
+    {
+      "case_id": "stub-matcher",
+      "agent": "qa-stub-builder",
+      "prompt_file": "prompts/stub-matcher.md",
+      "checks": [
+        {
+          "check_id": "conflict",
+          "expectation": "Указано пересечение matcher/приоритетов и провал отрицательной пробы, положительная не доказывает правильность."
+        },
+        {
+          "check_id": "intent",
+          "expectation": "Expected для B остаётся назначенным, actual не превращается в новое требование."
+        },
+        {
+          "check_id": "ownership",
+          "expectation": "OLD не удалён/не исправлен самовольно; требуется разрешённое адресное изменение или изолированный маршрут."
+        },
+        {
+          "check_id": "readiness",
+          "expectation": "TC-LOOKUP не объявлен ready; readback S1 и неуспех negative сохранены отдельно от неподтверждённого дефекта продукта."
+        }
+      ]
+    },
+    {
+      "case_id": "stub-kafka",
+      "agent": "qa-stub-builder",
+      "prompt_file": "prompts/stub-kafka.md",
+      "checks": [
+        {
+          "check_id": "freshness",
+          "expectation": "c-old/offset70 не подтверждает positive KA после позиции80 для c-new."
+        },
+        {
+          "check_id": "window",
+          "expectation": "1000мс не закрывают negative окно5000мс; отсутствие сообщения пока не успех."
+        },
+        {
+          "check_id": "dependencies",
+          "expectation": "TC-A и TC-B заблокированы из-за KA/KB, TC-C готов по предоставленной записи; все назначенные ID сохранены."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Нет выдуманных новых сообщений, capture, гарантий exactly-once, законченного ожидания или реального продуктового запуска."
+        }
+      ]
+    }
+  ]
+}

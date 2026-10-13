@@ -1,0 +1,31 @@
+{
+  "task_id": "QA-STUB-CONFIG",
+  "request_id": "QA-STUB-CONFIG-1",
+  "agent": "qa-stub-builder",
+  "event": "stubs_configured",
+  "summary": "Учебные REST/Kafka-конфигурации подготовлены без runtime-проб",
+  "artifacts": [
+    "profile.json",
+    "verification.json"
+  ],
+  "blockers": [],
+  "payload": {
+    "environment_id": "fixture-stage",
+    "mcp_server": "sbermock",
+    "project_id": "fixture-project",
+    "namespace": "QA-STUB-CONFIG:run1",
+    "profile_artifact": "profile.json",
+    "verification_artifact": "verification.json",
+    "blocked_scenarios": [],
+    "cleanup": "После зависимых проверок удалить только сохранённые созданные ID, не удаляя топики; проверить остатки",
+    "limitations": [
+      "Синтетический пример; MCP не вызывался",
+      "Конфигурация прочитана; runtime и продукт не проверялись"
+    ],
+    "provider": "sbermock",
+    "configured_scenarios": [
+      "TC-REST",
+      "TC-KAFKA"
+    ]
+  }
+}

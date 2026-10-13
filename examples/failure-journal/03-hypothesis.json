@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "event_id": "DEMO-2-observed",
+  "incident_id": "DEMO-2",
+  "occurred_at": "2020-01-01T12:00:00+00:00",
+  "actor": "qa-agent",
+  "task_id": "QA-DEMO-2",
+  "request_id": "analysis-1",
+  "agent": "qa-analyst",
+  "agent_version": "1.5",
+  "stage": "analysis",
+  "scope_kind": "synthetic",
+  "summary": "Вывод о дефекте сделан без установленного ожидания",
+  "symptom": "wrong_conclusion",
+  "impact": "Вывод нельзя принять до проверки требования",
+  "scenario_ids": [
+    "TC-3"
+  ],
+  "context": {
+    "environment_id": "synthetic",
+    "product_version": "fixture-1",
+    "model": null
+  },
+  "evidence": [
+    "observations.txt"
+  ],
+  "cause": {
+    "status": "suspected",
+    "category": "requirements",
+    "description": "Возможно, предположение было принято за подтверждённое требование",
+    "evidence": [
+      "observations.txt"
+    ]
+  },
+  "recovery": {
+    "outcome": "not_attempted",
+    "action": null,
+    "result": null,
+    "evidence": []
+  },
+  "regression_case": {
+    "status": "candidate",
+    "reason": "Проверить отказ от неподтверждённого дефекта",
+    "evidence": []
+  }
+}

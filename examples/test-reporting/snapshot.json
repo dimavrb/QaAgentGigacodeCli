@@ -1,0 +1,16 @@
+{
+  "scope_kind": "synthetic",
+  "observed_at": "2020-01-01T10:00:00+00:00",
+  "context": {
+    "role": "buyer",
+    "channel": "UI",
+    "browser": "Chrome",
+    "data_profile": "own-paid-order"
+  },
+  "feature_flags": {
+    "new_checkout": true
+  },
+  "integration_state": {
+    "refund_service": "unavailable"
+  }
+}

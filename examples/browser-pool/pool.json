@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "resources": [
+    {"server": "playwright-a", "mode": "isolated"},
+    {"server": "playwright-b", "mode": "isolated"},
+    {"server": "playwright-c", "mode": "isolated"}
+  ]
+}

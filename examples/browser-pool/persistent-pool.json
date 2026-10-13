@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "resources": [
+    {"server": "playwright-a", "mode": "persistent", "user_data_dir": "/REPLACE_WITH_ACTUAL_PATH/playwright-a"},
+    {"server": "playwright-b", "mode": "persistent", "user_data_dir": "/REPLACE_WITH_ACTUAL_PATH/playwright-b"},
+    {"server": "playwright-c", "mode": "persistent", "user_data_dir": "/REPLACE_WITH_ACTUAL_PATH/playwright-c"}
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "task_id": "QA-EXCHANGE",
+  "request_id": "QA-EXCHANGE-env-1",
+  "agent": "qa-test-env-configurator",
+  "event": "environment_ready",
+  "summary": "Учебный отчёт для проверки передачи; реальный стенд не проверялся.",
+  "artifacts": [
+    "evidence.txt"
+  ],
+  "blockers": [],
+  "payload": {
+    "environment_id": "synthetic",
+    "product_version": "fixture-1",
+    "verified_capabilities": [
+      "Учебный API доступен по сохранённому синтетическому материалу"
+    ],
+    "limitations": [
+      "Пример проверяет только протокол; продуктовые действия не выполнялись"
+    ]
+  },
+  "self_review": {
+    "schema_version": 1,
+    "checks": [
+      {
+        "id": "scope",
+        "status": "passed",
+        "note": "Оба критерия учебного протокола отражены; реальный стенд не входит в назначение.",
+        "evidence": [
+          "assignment:/acceptance_criteria",
+          "report:/artifacts/0"
+        ]
+      },
+      {
+        "id": "evidence",
+        "status": "passed",
+        "note": "Синтетическое доказательство объявлено; продуктовая проверка не заявлена.",
+        "evidence": [
+          "report:/artifacts/0",
+          "report:/payload/limitations"
+        ]
+      },
+      {
+        "id": "consistency",
+        "status": "passed",
+        "note": "Summary и ограничения явно отделяют учебную передачу от готовности продукта.",
+        "evidence": [
+          "report:/summary",
+          "report:/payload/limitations"
+        ]
+      },
+      {
+        "id": "role",
+        "status": "passed",
+        "note": "Учебные возможности стенда не объявлены фактически проверенными в продукте.",
+        "evidence": [
+          "report:/payload/verified_capabilities",
+          "report:/payload/limitations"
+        ]
+      }
+    ],
+    "fixes": [],
+    "remaining_risks": [
+      "Только синтетический протокол; готовность реального стенда не проверялась."
+    ]
+  }
+}

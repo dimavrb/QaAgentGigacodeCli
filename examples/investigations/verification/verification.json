@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "task_id": "QA-FIXTURE",
+  "request_id": "QA-FIXTURE-1",
+  "outcome": "defect_confirmed",
+  "business_rule": {
+    "source": "../requirements.md",
+    "expected_result": "Покупатель получает HTTP 403 без списка пользователей",
+    "relation": "violated"
+  },
+  "observation": {
+    "actual_result": "HTTP 200; показан список пользователей",
+    "runtime_evidence_ids": [
+      "E1"
+    ]
+  },
+  "code_path": {
+    "status": "traced",
+    "repository": "synthetic-access",
+    "revision": "fixture-source-1",
+    "deployment_match": "matched",
+    "deployment_evidence_ids": [
+      "E3"
+    ],
+    "steps": [
+      {
+        "file": "application.py",
+        "line": 3,
+        "behavior": "admin_users возвращает список без проверки роли; исполнение этой ветки записано в trace",
+        "evidence_ids": [
+          "E2"
+        ]
+      }
+    ],
+    "assessment": "В учебной цепочке действие покупателя достигает handler и возвращает список без отказа доступа; ревизия связана с учебной сборкой."
+  },
+  "cause": {
+    "status": "confirmed",
+    "scope": "application",
+    "statement": "Обработчик выдаёт список без проверки роли покупателя",
+    "evidence_ids": [
+      "E1",
+      "E2",
+      "E3"
+    ]
+  },
+  "next_check": {
+    "action": "none",
+    "goal": null,
+    "gap": null,
+    "reason": "Первичные материалы достаточны для учебного нарушения и механизма; повтор не добавит факта",
+    "repeat_of": null
+  },
+  "limitations": [
+    "Одна синтетическая попытка; не доказывает поведение реального приложения"
+  ]
+}

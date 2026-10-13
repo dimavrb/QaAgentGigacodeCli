@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "base_revision": "demo-base",
+  "target_revision": "demo-target",
+  "complete": true,
+  "source": "synthetic_fixture",
+  "changes": [
+    {
+      "change_id": "CH-001",
+      "paths": [
+        "src/orders.py"
+      ],
+      "evidence": [
+        "requirements.md#orders"
+      ]
+    }
+  ]
+}

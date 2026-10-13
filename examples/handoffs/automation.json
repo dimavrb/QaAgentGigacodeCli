@@ -1,0 +1,26 @@
+{
+  "task_id": "QA-HANDOFF",
+  "request_id": "automation-1",
+  "agent": "qa-test-automation",
+  "event": "ready_for_review",
+  "summary": "Синтетический пример передачи результата; продуктовые действия не выполнялись.",
+  "artifacts": [
+    "changes.diff",
+    "autotest.py"
+  ],
+  "blockers": [],
+  "payload": {
+    "scenario_id": "TC-001",
+    "requirement_source": "../test-plan/requirements.md#r-1",
+    "base_revision": "synthetic-base",
+    "current_revision": "synthetic-current",
+    "changed_files": [
+      "autotest.py"
+    ],
+    "diff_artifact": "changes.diff",
+    "run_result": "Синтетический результат запуска; реальный запуск не выполнялся",
+    "limitations": [
+      "Проверка протокола передачи"
+    ]
+  }
+}

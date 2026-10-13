@@ -1,0 +1,17 @@
+{
+  "task_id": "QA-FIXTURE",
+  "request_id": "QA-FIXTURE-1",
+  "agent": "qa-defect-investigator",
+  "event": "blocked",
+  "summary": "Учебный пример: blocked",
+  "artifacts": [
+    "state.json",
+    "observation.txt"
+  ],
+  "blockers": [
+    "Стенд недоступен"
+  ],
+  "payload": {
+    "reason": "Стенд недоступен"
+  }
+}

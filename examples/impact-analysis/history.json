@@ -1,0 +1,9 @@
+{
+  "new_scenario_ids": [
+    "TC-NEW"
+  ],
+  "previously_failed_scenario_ids": [
+    "TC-FAIL"
+  ],
+  "source": "synthetic"
+}

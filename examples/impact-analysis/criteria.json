@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "criteria": [
+    {
+      "criterion_id": "C-IMPACT",
+      "description": "Обоснован выбор всего учебного каталога и исключений",
+      "source": "requirements.md",
+      "required": true,
+      "required_reviews": [
+        {
+          "scope": "impact_selection",
+          "agent": "qa-result-reviewer"
+        }
+      ]
+    }
+  ]
+}

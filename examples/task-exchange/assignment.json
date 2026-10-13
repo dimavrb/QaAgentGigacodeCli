@@ -1,0 +1,16 @@
+{
+  "task_id": "QA-EXCHANGE",
+  "request_id": "QA-EXCHANGE-env-1",
+  "agent": "qa-test-env-configurator",
+  "stage": "environment",
+  "goal": "Проверить протокол передачи на учебном отчёте",
+  "acceptance_criteria": ["Отчёт проходит полный валидатор", "Доказательство доступно и не изменилось"],
+  "stop_condition": "Вернуть сохранённый учебный отчёт без действий на стенде",
+  "expected_artifact": "JSON-отчёт environment_ready и учебное доказательство",
+  "result_path": "../../artifacts/exchange/demo/env-result.json",
+  "artifact_base": ".",
+  "inputs": ["requirements.md"],
+  "depends_on": [],
+  "criterion_ids": ["C-PROTOCOL"],
+  "scenario_ids": ["TC-001"]
+}

@@ -1,0 +1,28 @@
+{
+  "task_id": "QA-HANDOFF",
+  "request_id": "data-1",
+  "agent": "qa-test-data-builder",
+  "event": "data_partial",
+  "summary": "Синтетический пример передачи результата; продуктовые действия не выполнялись.",
+  "artifacts": [
+    "evidence.txt"
+  ],
+  "blockers": [],
+  "payload": {
+    "environment_id": "synthetic",
+    "data_ids": [
+      "paid-1",
+      "new-1"
+    ],
+    "verified_properties": [
+      "Синтетические статусы Оплачен и Новый"
+    ],
+    "cleanup": "Учебные ID; реальные данные не создаются",
+    "scenario_ids": [
+      "TC-001"
+    ],
+    "blocked_scenarios": [
+      "TC-002"
+    ]
+  }
+}

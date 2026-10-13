@@ -1,0 +1,4 @@
+{
+  "schema_version": 1,
+  "criteria": [{"criterion_id": "C-PROTOCOL", "description": "Учебный отчёт передан, проверен и принят с неизменённым доказательством", "source": "requirements.md: синтетический протокол передачи", "required": true}]
+}

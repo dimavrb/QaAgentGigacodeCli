@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "scope_sources": [
+    "requirements.md#access",
+    "requirements.md#clients"
+  ],
+  "factors": {
+    "role": [
+      "user",
+      "admin"
+    ],
+    "owner": [
+      "own",
+      "other"
+    ],
+    "channel": [
+      "ui",
+      "api"
+    ],
+    "browser": [
+      "chrome",
+      "firefox",
+      "none"
+    ]
+  },
+  "strength": 2,
+  "exclude": [
+    {
+      "channel": "ui",
+      "browser": "none"
+    },
+    {
+      "channel": "api",
+      "browser": "chrome"
+    },
+    {
+      "channel": "api",
+      "browser": "firefox"
+    }
+  ],
+  "interaction_groups": [
+    [
+      "role",
+      "owner",
+      "channel"
+    ]
+  ],
+  "seeds": [
+    {
+      "combination_id": "C-ACCESS-DENIED",
+      "values": {
+        "role": "user",
+        "owner": "other",
+        "channel": "api",
+        "browser": "none"
+      },
+      "scenario_ids": []
+    }
+  ],
+  "behavior_rules": [
+    {
+      "rule_id": "RULE-1",
+      "requirement_id": "R-1",
+      "source": "requirements.md#access",
+      "status": "confirmed",
+      "conditions": {
+        "role": "user",
+        "owner": "own"
+      },
+      "expected_result": "Пользователь видит содержимое собственного заказа"
+    },
+    {
+      "rule_id": "RULE-2",
+      "requirement_id": "R-1",
+      "source": "requirements.md#access",
+      "status": "confirmed",
+      "conditions": {
+        "role": "user",
+        "owner": "other"
+      },
+      "expected_result": "Содержимое чужого заказа не раскрывается"
+    },
+    {
+      "rule_id": "RULE-3",
+      "requirement_id": "R-2",
+      "source": "requirements.md#access",
+      "status": "confirmed",
+      "conditions": {
+        "role": "admin"
+      },
+      "expected_result": "Администратор видит содержимое запрошенного собственного или чужого заказа"
+    }
+  ]
+}

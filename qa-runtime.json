@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "backend": "gigacode",
+  "executable": "gigacode",
+  "protocol": "headless-json-v1"
+}

@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "task_id": "QA-FIXTURE",
+  "request_id": "QA-FIXTURE-1",
+  "updated_at": "2026-10-02T10:00:00+03:00",
+  "execution_status": "waiting",
+  "expected_source": "../requirements.md",
+  "context": {
+    "environment_id": "fixture-stage",
+    "product_version": "fixture-1",
+    "requirements_revision": "R1",
+    "data_revision": "D1"
+  },
+  "hypotheses": [
+    {
+      "hypothesis_id": "H1",
+      "statement": "Покупатель получает список пользователей без административных прав",
+      "status": "supported"
+    }
+  ],
+  "attempts": [
+    {
+      "attempt_id": "A1",
+      "request_id": "QA-FIXTURE-1",
+      "hypothesis_id": "H1",
+      "started_at": "2026-10-02T09:59:00+03:00",
+      "context": {
+        "environment_id": "fixture-stage",
+        "product_version": "fixture-1",
+        "requirements_revision": "R1",
+        "data_revision": "D1"
+      },
+      "preconditions": [
+        "Тестовая роль покупателя без административных прав"
+      ],
+      "steps": [
+        "Отправить GET /admin/users"
+      ],
+      "status": "executed",
+      "observations": [
+        "HTTP 200; показан список пользователей"
+      ],
+      "actual_result": "HTTP 200; показан список пользователей",
+      "evidence_ids": [
+        "E1"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "E1",
+      "attempt_id": "A1",
+      "path": "observation.txt",
+      "description": "Синтетическое наблюдение ответа в A1",
+      "sha256": "e16c6ebfca812d1a99ce17db7149fd2463d948e65d87f391417796fc34ea405e"
+    }
+  ],
+  "blockers": [],
+  "next_step": {
+    "goal": "Проверить роль и исходные условия обращения без повтора A1",
+    "stop_condition": "Остановиться при недостатке доступа или новом расхождении",
+    "expected_artifact": "Новая попытка в состоянии и относящееся наблюдение"
+  },
+  "review": {
+    "request_id": "QA-FIXTURE-1",
+    "outcome": "defect_confirmed",
+    "decision": "passed",
+    "state_sha256": "87b97843cba8c97ff87abe434a578782294abf6a4e6101e1375780759c6dcbb9",
+    "result_sha256": "3bf29a5bdfac26c59049a3739250afaf299ed3b37bc06f8de4b722c745b5764f",
+    "checks": {
+      "expected_source": {
+        "status": "passed",
+        "note": "Учебный контракт требует HTTP 403 без списка пользователей"
+      },
+      "actual_attempt": {
+        "status": "passed",
+        "note": "Факт сопоставлен с GET /admin/users и условиями A1"
+      },
+      "evidence_support": {
+        "status": "passed",
+        "note": "HTTP 200; показан список пользователей; соответствует заявленному факту"
+      },
+      "observation_vs_cause": {
+        "status": "passed",
+        "note": "Причина не установлена; факт отделён от гипотезы H1"
+      },
+      "limitations": {
+        "status": "passed",
+        "note": "Отмечены синтетические данные и одна попытка; not_reproduced не исключает исходный дефект"
+      }
+    },
+    "follow_up": []
+  },
+  "used_request_ids": [
+    "QA-FIXTURE-1"
+  ]
+}

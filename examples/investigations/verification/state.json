@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "task_id": "QA-FIXTURE",
+  "request_id": "QA-FIXTURE-1",
+  "updated_at": "2026-10-02T10:00:00+03:00",
+  "execution_status": "waiting",
+  "expected_source": "../requirements.md",
+  "context": {
+    "environment_id": "fixture-stage",
+    "product_version": "fixture-1",
+    "requirements_revision": "R1",
+    "data_revision": "D1"
+  },
+  "hypotheses": [
+    {
+      "hypothesis_id": "H1",
+      "statement": "Покупатель получает список пользователей без административных прав",
+      "status": "supported"
+    }
+  ],
+  "attempts": [
+    {
+      "attempt_id": "A1",
+      "request_id": "QA-FIXTURE-1",
+      "hypothesis_id": "H1",
+      "started_at": "2026-10-02T09:59:00+03:00",
+      "context": {
+        "environment_id": "fixture-stage",
+        "product_version": "fixture-1",
+        "requirements_revision": "R1",
+        "data_revision": "D1"
+      },
+      "preconditions": [
+        "Тестовая роль покупателя без административных прав"
+      ],
+      "steps": [
+        "Отправить GET /admin/users"
+      ],
+      "status": "executed",
+      "observations": [
+        "HTTP 200; показан список пользователей",
+        "Учебный trace фиксирует ветку list_users_without_role_check и метаданные сборки; исходники лишь объясняют её механизм"
+      ],
+      "actual_result": "HTTP 200; показан список пользователей",
+      "evidence_ids": [
+        "E1",
+        "E2",
+        "E3",
+        "E4"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "E1",
+      "attempt_id": "A1",
+      "path": "observation.txt",
+      "description": "Первичный учебный ответ и trace",
+      "sha256": "7cfdb425957504f59e2a2ec6552997d996403d3419626022e0d3fd5885beecce"
+    },
+    {
+      "evidence_id": "E2",
+      "attempt_id": "A1",
+      "path": "application.py",
+      "description": "Снимок учебного обработчика fixture-source-1",
+      "sha256": "9f2464cb631207bc6fba25d730b1975168b6832f8f6768f55950bf395123c101"
+    },
+    {
+      "evidence_id": "E3",
+      "attempt_id": "A1",
+      "path": "deployment.txt",
+      "description": "Учебные метаданные развёрнутой сборки",
+      "sha256": "dd34b424ff3eee26bd1fc17e582b320df55d7708215a5c8fe1815ccbdcee0281"
+    },
+    {
+      "evidence_id": "E4",
+      "attempt_id": "A1",
+      "path": "verification.json",
+      "description": "Оценка правила, факта и механизма; не runtime-доказательство",
+      "sha256": "623e267e74f229de9af8a50df9a14cb41b72fb3b75572706d788f87f98933d30"
+    }
+  ],
+  "blockers": [],
+  "next_step": {
+    "goal": "Проверить роль и исходные условия обращения без повтора A1",
+    "stop_condition": "Остановиться при недостатке доступа или новом расхождении",
+    "expected_artifact": "Новая попытка в состоянии и относящееся наблюдение"
+  },
+  "review": {
+    "request_id": "QA-FIXTURE-1",
+    "outcome": "defect_confirmed",
+    "decision": "passed",
+    "state_sha256": "82c97b79548db8b0e23224fc832bad62eb798858a3fa6166e0448167e0a94e87",
+    "result_sha256": "1cf6db23d3da48d97b15d18452c4eb942dff099e3a7f7a0206b310ef3243c1f5",
+    "checks": {
+      "expected_source": {
+        "status": "passed",
+        "note": "Учебное правило R-1 явно запрещает покупателю список пользователей; исходники не использованы как oracle."
+      },
+      "actual_attempt": {
+        "status": "passed",
+        "note": "Учебный A1 связывает покупателя, запрос и ответ с fixture-stage/fixture-1/R1/D1. Это синтетические материалы, не реальный стенд."
+      },
+      "evidence_support": {
+        "status": "passed",
+        "note": "Учебный ответ содержит HTTP 200 и пользователя вместо HTTP 403; source и verification не засчитаны как runtime."
+      },
+      "observation_vs_cause": {
+        "status": "passed",
+        "note": "Учебный trace фиксирует нужную ветку, снимок handler показывает отсутствие проверки; deployment.txt связывает ревизию со сборкой. Причина и нарушение рассмотрены отдельно."
+      },
+      "limitations": {
+        "status": "passed",
+        "note": "Одна синтетическая попытка; соседние роли/методы и приложение пользователя не проверялись. Повтор для этого учебного вывода не нужен."
+      }
+    },
+    "follow_up": []
+  },
+  "used_request_ids": [
+    "QA-FIXTURE-1"
+  ],
+  "verification_required": true
+}

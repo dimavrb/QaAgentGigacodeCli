@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "task_id": "QA-STUB-DEMO",
+  "request_id": "QA-STUB-DEMO-1",
+  "environment_id": "fixture-stage",
+  "mcp_server": "sbermock",
+  "project_id": "fixture-project",
+  "namespace": "QA-STUB-DEMO:run1",
+  "stub_id": "fixture-rest-1",
+  "kind": "REST",
+  "observed_at": "2026-10-07T12:00:00.200+03:00",
+  "source": "synthetic fixture; no live MCP call",
+  "control": "positive",
+  "input": {
+    "method": "POST",
+    "path": "/decision",
+    "body": {
+      "order_id": "run1-order1"
+    }
+  },
+  "expected": {
+    "status": 200,
+    "body": {
+      "decision": "approved"
+    }
+  },
+  "actual": {
+    "status": 200,
+    "body": {
+      "decision": "approved"
+    }
+  },
+  "passed": true,
+  "provider": "sbermock"
+}

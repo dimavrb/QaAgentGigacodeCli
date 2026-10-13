@@ -1,0 +1,26 @@
+{
+  "task_id": "QA-STUB-DEMO",
+  "request_id": "QA-STUB-DEMO-1",
+  "agent": "qa-stub-builder",
+  "event": "stubs_plan_ready",
+  "summary": "Учебный черновик REST/Kafka; мутаций не было",
+  "artifacts": [
+    "assignment.json"
+  ],
+  "blockers": [],
+  "payload": {
+    "environment_id": "fixture-stage",
+    "provider": "sbermock",
+    "mcp_server": "sbermock",
+    "project_id": "fixture-project",
+    "namespace": "QA-STUB-DEMO:run1",
+    "scenario_ids": [
+      "TC-REST",
+      "TC-KAFKA"
+    ],
+    "assignment_artifact": "assignment.json",
+    "limitations": [
+      "Синтетический черновик; MCP не вызывался"
+    ]
+  }
+}

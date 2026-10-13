@@ -1,0 +1,270 @@
+{
+  "schema_version": 1,
+  "model_sha256": "cb0f4ad3b4de9fd9200d2ee6120861d893d147cc52d75aa65344bb8ec15fff0b",
+  "algorithm": "deterministic_greedy",
+  "feasible_assignments": 12,
+  "required_interactions": 35,
+  "rows": [
+    {
+      "combination_id": "C-ACCESS-DENIED",
+      "values": {
+        "role": "user",
+        "owner": "other",
+        "channel": "api",
+        "browser": "none"
+      },
+      "scenario_ids": [
+        "TC-ACCESS"
+      ],
+      "scenario_bindings": [
+        {
+          "binding_id": "B-C-ACCESS-DENIED",
+          "scenario_id": "TC-ACCESS",
+          "parameter_set_id": "P-C-ACCESS-DENIED",
+          "rule_id": "RULE-2",
+          "factor_refs": {
+            "role": "/preconditions/1",
+            "owner": "/preconditions/2",
+            "channel": "/preconditions/3",
+            "browser": "/preconditions/3"
+          },
+          "expected_refs": [
+            "/steps/0/expected_result"
+          ]
+        }
+      ]
+    },
+    {
+      "combination_id": "COMB-001",
+      "values": {
+        "browser": "chrome",
+        "channel": "ui",
+        "owner": "own",
+        "role": "user"
+      },
+      "scenario_ids": [
+        "TC-ACCESS"
+      ],
+      "scenario_bindings": [
+        {
+          "binding_id": "B-COMB-001",
+          "scenario_id": "TC-ACCESS",
+          "parameter_set_id": "P-COMB-001",
+          "rule_id": "RULE-1",
+          "factor_refs": {
+            "role": "/preconditions/1",
+            "owner": "/preconditions/2",
+            "channel": "/preconditions/3",
+            "browser": "/preconditions/3"
+          },
+          "expected_refs": [
+            "/steps/0/expected_result"
+          ]
+        }
+      ]
+    },
+    {
+      "combination_id": "COMB-002",
+      "values": {
+        "browser": "firefox",
+        "channel": "ui",
+        "owner": "other",
+        "role": "admin"
+      },
+      "scenario_ids": [
+        "TC-ACCESS"
+      ],
+      "scenario_bindings": [
+        {
+          "binding_id": "B-COMB-002",
+          "scenario_id": "TC-ACCESS",
+          "parameter_set_id": "P-COMB-002",
+          "rule_id": "RULE-3",
+          "factor_refs": {
+            "role": "/preconditions/1",
+            "owner": "/preconditions/2",
+            "channel": "/preconditions/3",
+            "browser": "/preconditions/3"
+          },
+          "expected_refs": [
+            "/steps/0/expected_result"
+          ]
+        }
+      ]
+    },
+    {
+      "combination_id": "COMB-003",
+      "values": {
+        "browser": "none",
+        "channel": "api",
+        "owner": "own",
+        "role": "admin"
+      },
+      "scenario_ids": [
+        "TC-ACCESS"
+      ],
+      "scenario_bindings": [
+        {
+          "binding_id": "B-COMB-003",
+          "scenario_id": "TC-ACCESS",
+          "parameter_set_id": "P-COMB-003",
+          "rule_id": "RULE-3",
+          "factor_refs": {
+            "role": "/preconditions/1",
+            "owner": "/preconditions/2",
+            "channel": "/preconditions/3",
+            "browser": "/preconditions/3"
+          },
+          "expected_refs": [
+            "/steps/0/expected_result"
+          ]
+        }
+      ]
+    },
+    {
+      "combination_id": "COMB-004",
+      "values": {
+        "browser": "chrome",
+        "channel": "ui",
+        "owner": "own",
+        "role": "admin"
+      },
+      "scenario_ids": [
+        "TC-ACCESS"
+      ],
+      "scenario_bindings": [
+        {
+          "binding_id": "B-COMB-004",
+          "scenario_id": "TC-ACCESS",
+          "parameter_set_id": "P-COMB-004",
+          "rule_id": "RULE-3",
+          "factor_refs": {
+            "role": "/preconditions/1",
+            "owner": "/preconditions/2",
+            "channel": "/preconditions/3",
+            "browser": "/preconditions/3"
+          },
+          "expected_refs": [
+            "/steps/0/expected_result"
+          ]
+        }
+      ]
+    },
+    {
+      "combination_id": "COMB-005",
+      "values": {
+        "browser": "chrome",
+        "channel": "ui",
+        "owner": "other",
+        "role": "user"
+      },
+      "scenario_ids": [
+        "TC-ACCESS"
+      ],
+      "scenario_bindings": [
+        {
+          "binding_id": "B-COMB-005",
+          "scenario_id": "TC-ACCESS",
+          "parameter_set_id": "P-COMB-005",
+          "rule_id": "RULE-2",
+          "factor_refs": {
+            "role": "/preconditions/1",
+            "owner": "/preconditions/2",
+            "channel": "/preconditions/3",
+            "browser": "/preconditions/3"
+          },
+          "expected_refs": [
+            "/steps/0/expected_result"
+          ]
+        }
+      ]
+    },
+    {
+      "combination_id": "COMB-006",
+      "values": {
+        "browser": "firefox",
+        "channel": "ui",
+        "owner": "own",
+        "role": "user"
+      },
+      "scenario_ids": [
+        "TC-ACCESS"
+      ],
+      "scenario_bindings": [
+        {
+          "binding_id": "B-COMB-006",
+          "scenario_id": "TC-ACCESS",
+          "parameter_set_id": "P-COMB-006",
+          "rule_id": "RULE-1",
+          "factor_refs": {
+            "role": "/preconditions/1",
+            "owner": "/preconditions/2",
+            "channel": "/preconditions/3",
+            "browser": "/preconditions/3"
+          },
+          "expected_refs": [
+            "/steps/0/expected_result"
+          ]
+        }
+      ]
+    },
+    {
+      "combination_id": "COMB-007",
+      "values": {
+        "browser": "none",
+        "channel": "api",
+        "owner": "own",
+        "role": "user"
+      },
+      "scenario_ids": [
+        "TC-ACCESS"
+      ],
+      "scenario_bindings": [
+        {
+          "binding_id": "B-COMB-007",
+          "scenario_id": "TC-ACCESS",
+          "parameter_set_id": "P-COMB-007",
+          "rule_id": "RULE-1",
+          "factor_refs": {
+            "role": "/preconditions/1",
+            "owner": "/preconditions/2",
+            "channel": "/preconditions/3",
+            "browser": "/preconditions/3"
+          },
+          "expected_refs": [
+            "/steps/0/expected_result"
+          ]
+        }
+      ]
+    },
+    {
+      "combination_id": "COMB-008",
+      "values": {
+        "browser": "none",
+        "channel": "api",
+        "owner": "other",
+        "role": "admin"
+      },
+      "scenario_ids": [
+        "TC-ACCESS"
+      ],
+      "scenario_bindings": [
+        {
+          "binding_id": "B-COMB-008",
+          "scenario_id": "TC-ACCESS",
+          "parameter_set_id": "P-COMB-008",
+          "rule_id": "RULE-3",
+          "factor_refs": {
+            "role": "/preconditions/1",
+            "owner": "/preconditions/2",
+            "channel": "/preconditions/3",
+            "browser": "/preconditions/3"
+          },
+          "expected_refs": [
+            "/steps/0/expected_result"
+          ]
+        }
+      ]
+    }
+  ]
+}

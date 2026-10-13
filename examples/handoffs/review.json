@@ -1,0 +1,22 @@
+{
+  "task_id": "QA-HANDOFF",
+  "request_id": "review-1",
+  "agent": "qa-autotest-reviewer",
+  "event": "review_passed",
+  "summary": "Синтетический пример передачи результата; продуктовые действия не выполнялись.",
+  "artifacts": [
+    "changes.diff",
+    "autotest.py"
+  ],
+  "blockers": [],
+  "payload": {
+    "reviewed_revision": "synthetic-current",
+    "findings": [],
+    "checks": [
+      "Синтетическая проверка связей ревизии и файлов"
+    ],
+    "limitations": [
+      "Содержательное ревью автотеста не выполнялось"
+    ]
+  }
+}

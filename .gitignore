@@ -1,0 +1,36 @@
+# Local editor settings
+/.idea/
+/.vscode/
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+/.venv/
+
+# macOS
+.DS_Store
+
+# QA runtime state, browser evidence and prepared distributions
+.qa-agent-state/
+/artifacts/browser/
+/dist/
+/artifacts/investigations/
+/artifacts/test-reports/
+/artifacts/failures/
+/artifacts/context/
+/artifacts/questions/
+/artifacts/exchange/
+/artifacts/benchmarks/
+/artifacts/execution/
+
+# Personal runtime configuration and generated evidence
+/artifacts/
+/qa-runtime.local.json
+/.gigacode/GIGACODE.local.md
+/.gigacode/settings.local.json
+/.gigacode/.env
+/.gigacode/oauth_creds.json
+/.gigacode/mcp-oauth-tokens.json
+.env
+.env.*
+!.env.example

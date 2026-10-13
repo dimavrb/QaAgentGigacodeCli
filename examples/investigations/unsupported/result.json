@@ -1,0 +1,29 @@
+{
+  "task_id": "QA-FIXTURE",
+  "request_id": "QA-FIXTURE-1",
+  "agent": "qa-defect-investigator",
+  "event": "investigation_complete",
+  "summary": "Учебный пример: unsupported",
+  "artifacts": [
+    "state.json",
+    "observation.txt"
+  ],
+  "blockers": [],
+  "payload": {
+    "outcome": "defect_confirmed",
+    "expected_source": "../requirements.md",
+    "actual_result": "HTTP 200; показан список пользователей",
+    "attempts": [
+      "A1: GET /admin/users в fixture-stage, fixture-1, роль покупателя"
+    ],
+    "attempt_ids": [
+      "A1"
+    ],
+    "evidence": [
+      "observation.txt"
+    ],
+    "limitations": [
+      "Одна синтетическая попытка; не доказывает поведение реального приложения"
+    ]
+  }
+}

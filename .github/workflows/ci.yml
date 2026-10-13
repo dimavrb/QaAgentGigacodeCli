@@ -1,0 +1,36 @@
+name: QA package checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.10'
+          - os: macos-latest
+            python: '3.12'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Test local contracts and processes
+        run: python3 -m unittest discover -s tests -v
+      - name: Test data example
+        run: python3 -m unittest discover -s examples/test-data -v
+      - name: Build and verify package
+        shell: bash
+        run: |
+          python3 scripts/package_agent.py --output-dir dist --date 2026-10-13
+          package_version=$(cat VERSION)
+          python3 scripts/package_agent.py --verify "dist/qa-agent-${package_version}.zip"

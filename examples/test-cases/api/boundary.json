@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "test_cases": [
+    {
+      "scenario_id": "EX-API-003",
+      "title": "API заказов — quantity превышает верхнюю границу — заказ не создаётся",
+      "requirement_source": "Учебный пример, не требование приложения: Допустимое quantity — целое от 1 до 10 включительно; quantity=11 приводит к 400, code=QUANTITY_OUT_OF_RANGE; заказ не создаётся",
+      "preconditions": [
+        "Покупатель авторизован; SKU-EXAMPLE существует и имеет остаток не менее 11, чтобы исключить отказ из-за остатков",
+        "Исходный список ID заказов сохранён; параллельные изменения исключены"
+      ],
+      "steps": [
+        {
+          "name": "Отправить POST /orders с JSON {\"sku\":\"SKU-EXAMPLE\",\"quantity\":11}",
+          "expected_result": "Получен HTTP 400; code равен QUANTITY_OUT_OF_RANGE"
+        },
+        {
+          "name": "Получить список ID заказов тестового покупателя",
+          "expected_result": "Список совпадает с исходным; заказ с quantity=11 не появился"
+        }
+      ]
+    }
+  ]
+}
