@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "namespace": "product.manual",
+  "endpoint": "https://testops.example.com",
+  "project_id": "123",
+  "cases": {}
+}

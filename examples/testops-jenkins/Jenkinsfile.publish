@@ -1,0 +1,104 @@
+// Pipeline script and SCM branch must both come from the protected main branch.
+// Replace the repository filter and configuration before enabling publication.
+pipeline {
+    agent { label 'qa-python' }
+    options {
+        skipDefaultCheckout(true)
+        disableConcurrentBuilds()
+        timestamps()
+        timeout(time: 15, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+    parameters {
+        booleanParam(name: 'PUBLISH', defaultValue: false,
+            description: 'Публиковать после успешного пилота; для вебхука измените defaultValue на true')
+    }
+    environment {
+        MAIN_BRANCH = 'main'
+        CATALOG_DIR = 'test-cases'
+        IDENTITY_NAMESPACE = 'product.manual'
+        TESTOPS_ENDPOINT = 'https://testops.example.com'
+        TESTOPS_PROJECT_ID = 'REPLACE_ME'
+        TESTOPS_SERVER_ID = 'REPLACE_ME'
+        // Leave empty for first import. Keep the scoped map outside CATALOG_DIR.
+        ID_MAP = ''
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'WEBHOOK_REF', value: '$.ref'],
+                [key: 'WEBHOOK_REPOSITORY', value: '$.repository.full_name']
+            ],
+            tokenCredentialId: 'gitverse-manual-publish-webhook',
+            printContributedVariables: false,
+            printPostContent: false,
+            regexpFilterText: '$WEBHOOK_REPOSITORY:$WEBHOOK_REF',
+            regexpFilterExpression: '^REPLACE_OWNER/REPLACE_REPO:refs/heads/main$'
+        )
+    }
+    stages {
+        stage('Checkout protected branch') {
+            steps {
+                // Remove stale catalogs and artifacts even when checkout fails.
+                deleteDir()
+                checkout scm
+                // Never checkout a URL, branch or SHA supplied by the webhook.
+                sh '''
+                    set -eu
+                    git check-ref-format "refs/heads/$MAIN_BRANCH"
+                    test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/remotes/origin/$MAIN_BRANCH")"
+                '''
+            }
+        }
+        stage('Prepare manual catalog') {
+            steps {
+                dir('build/manual-publication') { deleteDir() }
+                sh '''
+                    set -eu
+                    if [ -n "$ID_MAP" ]; then
+                        python3 scripts/build_manual_allure.py \
+                            --catalog-dir "$CATALOG_DIR" --namespace "$IDENTITY_NAMESPACE" \
+                            --id-map "$ID_MAP" --endpoint "$TESTOPS_ENDPOINT" \
+                            --project-id "$TESTOPS_PROJECT_ID" \
+                            --output build/manual-publication/allure-results \
+                            --manifest build/manual-publication/manifest.json
+                    else
+                        python3 scripts/build_manual_allure.py \
+                            --catalog-dir "$CATALOG_DIR" --namespace "$IDENTITY_NAMESPACE" \
+                            --output build/manual-publication/allure-results \
+                            --manifest build/manual-publication/manifest.json
+                    fi
+                '''
+            }
+        }
+        stage('Publish manual scenarios') {
+            when { expression { return params.PUBLISH } }
+            steps {
+                script {
+                    if (!(env.TESTOPS_PROJECT_ID ==~ /[1-9][0-9]*/) || env.TESTOPS_SERVER_ID == 'REPLACE_ME') {
+                        error('Configure the TestOps server and project before publication')
+                    }
+                }
+                // Generate this step with Pipeline Syntax for the installed TestOps plugin.
+                // indexExistingFiles is required: generation finished before entering the block.
+                withAllureUpload(
+                    credentialsId: 'testops-manual-token',
+                    serverId: env.TESTOPS_SERVER_ID,
+                    projectId: env.TESTOPS_PROJECT_ID,
+                    name: 'Manual catalog ${JOB_NAME} #${BUILD_NUMBER}',
+                    tags: 'manual-catalog',
+                    results: [[path: 'build/manual-publication/allure-results']],
+                    indexExistingFiles: true,
+                    silent: false
+                ) {
+                    echo 'Publishing descriptions; human execution has not been performed'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts(artifacts: 'build/manual-publication/**', allowEmptyArchive: true)
+        }
+    }
+}

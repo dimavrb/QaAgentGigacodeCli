@@ -83,6 +83,7 @@ python3 scripts/run_test_automation.py \
 - [Качество и ревью](docs/CONTENT_REVIEW.md), [ревью выводов](docs/CONCLUSION_REVIEW.md), [ревью с исполнением](docs/REVIEW_EXECUTION.md).
 - [Импакт-анализ](docs/IMPACT_ANALYSIS.md), [измерения](docs/QA_IMPROVEMENTS.md), [benchmark](examples/benchmark/README.md).
 - [Тестовые данные](docs/TEST_DATA.md), [заглушки](docs/STUBS.md), [браузерный пул](docs/BROWSER_PROFILES.md), [HTML-вопросы](docs/QUESTIONS_UI.md).
+- [Ручные кейсы: JSON → вебхук GitVerse → Jenkins → ТестОпс](examples/testops-jenkins/README.md).
 - [Поставка 2.1.2](docs/RELEASE_2.1.2.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
 
 ## Пределы проверки

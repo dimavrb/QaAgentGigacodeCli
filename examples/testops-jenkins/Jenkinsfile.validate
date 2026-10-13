@@ -1,0 +1,68 @@
+// Load this Pipeline from the protected main branch; preview may checkout a feature branch.
+// This job has no TestOps credentials and never uploads results.
+pipeline {
+    agent { label 'qa-python-preview' }
+    options {
+        skipDefaultCheckout(true)
+        disableConcurrentBuilds()
+        timestamps()
+        timeout(time: 10, unit: 'MINUTES')
+    }
+    parameters {
+        string(name: 'WEBHOOK_REF', defaultValue: 'refs/heads/main', description: 'Ветка для проверки')
+    }
+    environment {
+        CATALOG_DIR = 'test-cases'
+        IDENTITY_NAMESPACE = 'product.manual'
+    }
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'WEBHOOK_REF', value: '$.ref'],
+                [key: 'WEBHOOK_REPOSITORY', value: '$.repository.full_name']
+            ],
+            tokenCredentialId: 'gitverse-manual-validate-webhook',
+            printContributedVariables: false,
+            printPostContent: false,
+            regexpFilterText: '$WEBHOOK_REPOSITORY:$WEBHOOK_REF',
+            regexpFilterExpression: '^REPLACE_OWNER/REPLACE_REPO:refs/heads/.+$'
+        )
+    }
+    stages {
+        stage('Checkout catalog branch') {
+            steps {
+                // Clean before validation so a rejected ref cannot archive old results.
+                deleteDir()
+                script {
+                    def branchRef = env.WEBHOOK_REF ?: params.WEBHOOK_REF
+                    if (!(branchRef ==~ /refs\/heads\/[A-Za-z0-9][A-Za-z0-9._\/-]*/)) {
+                        error('Only a repository branch ref is allowed')
+                    }
+                    withEnv(["PREVIEW_BRANCH_REF=${branchRef}"]) {
+                        sh 'git check-ref-format "$PREVIEW_BRANCH_REF"'
+                    }
+                    // SCM URL and Git credentials are fixed in the Jenkins job, never taken from payload.
+                    checkout([$class: 'GitSCM', branches: [[name: '*/' + branchRef.substring('refs/heads/'.length())]],
+                        userRemoteConfigs: scm.userRemoteConfigs])
+                }
+            }
+        }
+        stage('Validate and preview') {
+            steps {
+                dir('build/manual-publication') { deleteDir() }
+                sh '''
+                    set -eu
+                    python3 scripts/build_manual_allure.py \
+                        --catalog-dir "$CATALOG_DIR" --namespace "$IDENTITY_NAMESPACE" \
+                        --output build/manual-publication/allure-results \
+                        --manifest build/manual-publication/manifest.json
+                '''
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts(artifacts: 'build/manual-publication/**', allowEmptyArchive: true)
+        }
+    }
+}
