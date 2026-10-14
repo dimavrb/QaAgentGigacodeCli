@@ -47,6 +47,10 @@ class AutoUpdateTests(unittest.TestCase):
         self.state = self.root / 'profile'
         self.project.mkdir()
         copy_package(ROOT, self.author)
+        if self._testMethodName == 'test_launcher_reexecutes_new_code_refreshes_binding_and_forwards_cli_args':
+            # Native launcher integration uses a labelled local CI fixture, never GitHub/network.
+            ci_fixture = self.author / 'scripts/qa_release.py'
+            ci_fixture.write_text(ci_fixture.read_text() + '\n# Local CI fixture\ndef ci_passed(commit): return True\n')
         self.command('git', 'init', '-b', 'main', str(self.author))
         self.git(self.author, 'config', 'user.name', 'QA fixture')
         self.git(self.author, 'config', 'user.email', 'fixture@example.invalid')

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
+
+from qa_files import atomic_text, project_lock, read_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path('.qa-agent/project.local.json')
@@ -28,7 +28,10 @@ def read_json(path: Path) -> dict:
                 raise ValueError(f'duplicate JSON key: {key}')
             result[key] = value
         return result
-    value = json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique)
+    try:
+        value = json.loads(read_bytes(path).decode('utf-8'), object_pairs_hook=unique)
+    except RecursionError as exc:
+        raise ValueError('local JSON nesting exceeds the supported limit') from exc
     if not isinstance(value, dict):
         raise ValueError(f'{path}: expected a JSON object')
     return value
@@ -49,7 +52,7 @@ def package_info(root: Path = ROOT) -> dict:
         if manifest.get(key) != relative or path.is_symlink() or not expected_type:
             raise ValueError(f'invalid extension resource: {key}')
     for relative in ('docs/COORDINATOR.md', 'docs/EXTENSION_RUNTIME.md',
-                     'scripts/qa_project.py', 'scripts/qa_extension_mcp.py',
+                     'scripts/qa_project.py', 'scripts/qa_extension_mcp.py', 'scripts/qa_tasks.py',
                      'examples/qa-only/APP_CONTEXT.template.md'):
         if not (root / relative).is_file():
             raise ValueError(f'missing package resource: {relative}')
@@ -95,28 +98,47 @@ def read_binding(path: Path, project: Path) -> dict:
 
 
 def atomic_write(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(prefix='.qa-', dir=path.parent)
-    try:
-        with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
-            stream.write(text)
-        os.replace(temporary, path)
-    finally:
-        Path(temporary).unlink(missing_ok=True)
+    atomic_text(path, text)
 
 
-def initialize(project: Path, root: Path = ROOT, *, rebind: bool = False) -> dict:
+def binding_digest(binding):
+    import hashlib
+    return hashlib.sha256(json.dumps(binding, sort_keys=True, ensure_ascii=True).encode()).hexdigest()
+
+
+class RebindRequired(ValueError):
+    def __init__(self, binding, new_root):
+        self.binding, self.new_root = binding, new_root
+        super().__init__('package path changed; inspect it and use --rebind explicitly\n'
+                         f'Old package path: {binding["package_root"]}\nNew package path: {new_root}\n'
+                         f'Expected binding SHA-256: {binding_digest(binding)}')
+
+
+def initialize(project: Path, root: Path = ROOT, *, rebind: bool = False, expected_binding=None,
+               expected_binding_sha256=None) -> dict:
+    if rebind and expected_binding is None and expected_binding_sha256 is None:
+        raise ValueError('rebind requires the reviewed binding or its SHA-256 digest')
     info = package_info(root)
     project = project_path(project, Path(info['package_root']))
+    with project_lock(project):
+        return initialize_locked(project, info, rebind=rebind, expected_binding=expected_binding,
+                                 expected_binding_sha256=expected_binding_sha256)
+
+
+def initialize_locked(project, info, *, rebind, expected_binding, expected_binding_sha256):
+    project_path(project, Path(info['package_root']))
     config_path, context_path, ignore_path = project / CONFIG, project / CONTEXT, project / '.gitignore'
     previous = read_binding(config_path, project) if config_path.exists() else None
+    if ((expected_binding is not None and previous != expected_binding)
+            or (expected_binding_sha256 is not None and binding_digest(previous) != expected_binding_sha256)):
+        raise ValueError('binding changed since review; show the current old/new paths again before rebind')
     if previous and previous['package_root'] != info['package_root'] and not rebind:
-        raise ValueError('package path changed; inspect it and use --rebind explicitly')
+        raise RebindRequired(previous, info['package_root'])
     # Validate every existing file before changing any project file.
     if context_path.exists():
-        context_path.read_text(encoding='utf-8')
+        read_bytes(context_path).decode('utf-8')
     context = (Path(info['package_root']) / 'examples/qa-only/APP_CONTEXT.template.md').read_text(encoding='utf-8')
-    ignore = ignore_path.read_text(encoding='utf-8') if ignore_path.exists() else ''
+    ignore = read_bytes(ignore_path).decode('utf-8') if ignore_path.exists() else ''
     missing = [line for line in IGNORE_LINES if line not in ignore.splitlines()]
     config = {key: info[key] for key in ('package_name', 'package_version', 'package_root')}
     config.update(schema_version=1, project_root=str(project))
@@ -126,9 +148,11 @@ def initialize(project: Path, root: Path = ROOT, *, rebind: bool = False) -> dic
         atomic_write(ignore_path, ignore + ('\n' if ignore and not ignore.endswith('\n') else '')
                      + '\n# Local QA Agent state and generated evidence\n' + '\n'.join(missing) + '\n')
         changed.append('.gitignore')
-    if not context_path.exists():
-        atomic_write(context_path, context)
+    if atomic_text(context_path, context, replace=False):
         changed.append(CONTEXT.as_posix())
+    else:
+        # A non-cooperating editor may have created the context after validation.
+        read_bytes(context_path).decode('utf-8')
     if previous != config:
         atomic_write(config_path, json.dumps(config, ensure_ascii=False, indent=2) + '\n')
         changed.append(CONFIG.as_posix())
@@ -145,7 +169,7 @@ def doctor(project: Path, root: Path = ROOT) -> dict:
     check('python', sys.version_info >= (3, 10), sys.version.split()[0])
     check('agents', info['agent_count'] == 14, str(info['agent_count']))
     check('skills', info['skill_count'] == 5, str(info['skill_count']))
-    check('commands', {'qa', 'qa:init', 'qa:doctor'} <= set(info['commands']), ', '.join(info['commands']))
+    check('commands', {'qa', 'qa:init', 'qa:doctor', 'qa:tasks', 'qa:resume'} <= set(info['commands']), ', '.join(info['commands']))
     config_path = project / CONFIG
     if config_path.exists():
         binding = read_binding(config_path, project)
@@ -175,12 +199,16 @@ def main() -> int:
     parser.add_argument('command', choices=('info', 'init', 'doctor'))
     parser.add_argument('--project-root', type=Path, default=Path.cwd())
     parser.add_argument('--rebind', action='store_true', help='Allow a reviewed change of installed package path')
+    parser.add_argument('--expected-binding-sha256', help='Binding digest shown in the preceding init error')
     args = parser.parse_args()
     try:
         if args.command == 'info':
             result = package_info()
         elif args.command == 'init':
-            result = initialize(args.project_root, rebind=args.rebind)
+            if args.rebind and not args.expected_binding_sha256:
+                raise ValueError('--rebind requires --expected-binding-sha256 from the reviewed first step')
+            result = initialize(args.project_root, rebind=args.rebind,
+                                expected_binding_sha256=args.expected_binding_sha256)
         else:
             result = doctor(args.project_root)
         print(json.dumps(result, ensure_ascii=False, indent=2))

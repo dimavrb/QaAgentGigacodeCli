@@ -1,7 +1,7 @@
-# Установка QA-агента 2.2.0 в GIGACODE CLI
+# Установка QA-агента 2.3.0 в GIGACODE CLI
 
 Требуются установленный и авторизованный **GIGACODE CLI от GitVerse**, Python
-3.10+ и Git. Установка самого CLI и доступ к модели выполняются по правилам вашей
+3.10+ и Git 2.36+ для защищённого автообновления/отката. Установка самого CLI и доступ к модели выполняются по правилам вашей
 организации. Не используйте одноимённые CLI других разработчиков.
 
 ## Подготовка
@@ -31,8 +31,8 @@ Git URL не передавайте в install. Если используете 
 ```
 
 CLI загружает роли, skills, команды и stdio MCP по `gigacode-extension.json`.
-В `/mcp` должны быть три инструмента: `qa_package_info`, `qa_project_init`,
-`qa_project_doctor`. `/qa:init` и `/qa:doctor` прежде всего вызывают MCP;
+В `/mcp` должны быть пять инструментов: `qa_package_info`, `qa_project_init`,
+`qa_project_doctor`, `qa_tasks_list`, `qa_task_get`. `/qa:init` и `/qa:doctor` прежде всего вызывают MCP;
 CLI fallback используется только при недоступности соответствующего инструмента.
 Передавайте абсолютный `project_root`. Init идемпотентен и пишет только
 `.gitignore`, `.qa-agent/APP_CONTEXT.md`, `.qa-agent/project.local.json`, сохраняя
@@ -41,10 +41,17 @@ CLI fallback используется только при недоступнос
 Ошибки приходят как `isError` с `QA project error: …`. Doctor read-only:
 `needs_attention` — штатный результат, единственный дочерний вызов —
 существующий зонд `gigacode --version`. Личные настройки не копируются из пакета.
-Сверьте версию в менеджере с `2.2.0`. Откройте новую сессию и проверьте
+Сверьте версию в менеджере с `2.3.0`. Откройте новую сессию и проверьте
 `/extensions`, `/agents manage`, `/skills`, `/help`, `/mcp` и `/qa`.
 Подробности, установка локальной копии и пилот — [EXTENSIONS.md](EXTENSIONS.md).
 Для автообновления настройте `qa-start` по [AUTO_UPDATE.md](AUTO_UPDATE.md).
+CI gate, backup, внешнее восстановление и новый CLI rebind digest описаны в
+[UPDATE_SAFETY.md](UPDATE_SAFETY.md). При переносе CLI требует
+`--rebind --expected-binding-sha256 <SHA-256 из первой ошибки>`.
+Для сохранённых заданий используйте `/qa:tasks` и `/qa:resume <ID>`;
+пустая `/qa` предлагает выбор задачи или новой цели. Пути материалов и порядок
+восстановления — [TASK_STORAGE.md](TASK_STORAGE.md). Локальные реестры не
+синхронизируются через Git; `/qa:init` не переносит старые задачи автоматически.
 
 ### Исходная Git-копия
 

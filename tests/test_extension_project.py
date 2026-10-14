@@ -23,7 +23,7 @@ class ExtensionProjectTests(unittest.TestCase):
         manifest = json.loads((ROOT / 'gigacode-extension.json').read_text())
         for name in ('gigacode-extension.json', 'VERSION', 'GIGACODE_EXTENSION.md',
                      'docs/COORDINATOR.md', 'docs/EXTENSION_RUNTIME.md',
-                     'scripts/qa_project.py', 'scripts/qa_extension_mcp.py',
+                     'scripts/qa_project.py', 'scripts/qa_extension_mcp.py', 'scripts/qa_tasks.py', 'scripts/qa_files.py',
                      'examples/qa-only/APP_CONTEXT.template.md'):
             target = self.package / name
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -40,7 +40,7 @@ class ExtensionProjectTests(unittest.TestCase):
         info = package_info(self.package)
         self.assertEqual(14, info['agent_count'])
         self.assertEqual(5, info['skill_count'])
-        self.assertEqual({'qa', 'qa:init', 'qa:doctor'}, set(info['commands']))
+        self.assertEqual({'qa', 'qa:init', 'qa:doctor', 'qa:tasks', 'qa:resume'}, set(info['commands']))
         self.assertEqual(str(self.package), info['package_root'])
         self.assertEqual((ROOT / 'VERSION').read_text().strip(), info['package_version'])
 
@@ -97,13 +97,14 @@ class ExtensionProjectTests(unittest.TestCase):
 
     def test_moved_package_requires_explicit_rebind(self):
         initialize(self.project, self.package)
+        reviewed = json.loads((self.project / CONFIG).read_text())
         moved = self.root / 'moved-package'
         self.package.rename(moved)
         before = self.snapshot(self.project)
         with self.assertRaisesRegex(ValueError, 'use --rebind'):
             initialize(self.project, moved)
         self.assertEqual(before, self.snapshot(self.project))
-        initialize(self.project, moved, rebind=True)
+        initialize(self.project, moved, rebind=True, expected_binding=reviewed)
         self.assertEqual(str(moved), json.loads((self.project / CONFIG).read_text())['package_root'])
 
     def test_doctor_is_read_only_and_never_claims_live_compatibility(self):
@@ -215,7 +216,9 @@ class ExtensionMCPTests(unittest.TestCase):
             self.assertEqual(3, len(responses))
             self.assertEqual('2025-03-26', responses[0]['result']['protocolVersion'])
             tools = {tool['name']: tool for tool in responses[1]['result']['tools']}
-            self.assertEqual({'qa_package_info', 'qa_project_init', 'qa_project_doctor'}, set(tools))
+            self.assertEqual({'qa_package_info', 'qa_project_init', 'qa_project_doctor', 'qa_tasks_list', 'qa_task_get'}, set(tools))
+            for name in ('qa_tasks_list', 'qa_task_get'):
+                self.assertTrue(tools[name]['annotations']['readOnlyHint'])
             self.assertTrue(tools['qa_package_info']['annotations']['readOnlyHint'])
             self.assertTrue(tools['qa_project_doctor']['annotations']['readOnlyHint'])
             self.assertFalse(tools['qa_project_init']['annotations']['readOnlyHint'])

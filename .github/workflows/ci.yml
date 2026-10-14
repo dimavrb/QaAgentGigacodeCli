@@ -34,3 +34,12 @@ jobs:
           python3 scripts/package_agent.py --output-dir dist --date 2026-10-14
           package_version=$(cat VERSION)
           python3 scripts/package_agent.py --verify "dist/qa-agent-${package_version}.zip"
+      - name: Save verified package and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-package-${{ matrix.os }}-python-${{ matrix.python }}-${{ github.sha }}
+          path: |
+            dist/*.zip
+            dist/*.zip.sha256
+          if-no-files-found: error
+          retention-days: 30

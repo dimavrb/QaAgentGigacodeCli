@@ -27,9 +27,13 @@ def main():
     parser.add_argument('cli_args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
     lock = None
+    def terminate(signum, frame):
+        raise SystemExit(128 + signum)
+    previous_term = signal.signal(signal.SIGTERM, terminate)
     try:
         source = ROOT.resolve()
         project = args.project_root.resolve()
+        project_path(project, source)
         binding = read_binding(project / CONFIG, project)
         installed = Path(binding['package_root']).resolve()
         project_path(project, installed)
@@ -85,7 +89,11 @@ def main():
     except (OSError, ValueError, TypeError, subprocess.TimeoutExpired) as exc:
         print(f'QA start error: {exc}', file=sys.stderr)
         return 2
+    except KeyboardInterrupt:
+        print('QA start interrupted; check saved activation/recovery state before retrying', file=sys.stderr)
+        return 130
     finally:
+        signal.signal(signal.SIGTERM, previous_term)
         if lock is not None:
             lock.close()
 

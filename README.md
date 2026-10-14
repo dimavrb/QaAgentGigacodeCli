@@ -1,4 +1,4 @@
-# QA Agent — GIGACODE CLI · 2.2.0
+# QA Agent — GIGACODE CLI · 2.3.0
 
 Переносимый QA-пакет: координатор, 14 специализированных ролей, 5 skills,
 проверяемые контракты результатов и Python-инструменты. Основной профиль —
@@ -62,6 +62,8 @@ alias qa-start='python3 "$HOME/qa-tools/qa-agent/scripts/qa_start.py"'
 | `qa-runtime.json` | Исполнитель по умолчанию и контракт headless-запуска |
 | `gigacode-extension.json`, `GIGACODE_EXTENSION.md` | Манифест и контекст расширения |
 | `scripts/qa_project.py`, `scripts/qa_extension_mcp.py` | MCP: метаданные, инициализация проекта и read-only диагностика |
+| `scripts/qa_tasks.py`, `docs/TASK_STORAGE.md` | Список/чтение задач, единые пути и восстановление по реестру |
+| `scripts/qa_release.py`, `scripts/qa_recover.py`, `docs/UPDATE_SAFETY.md` | Проверка выпуска и независимый rollback вне checkout |
 | `scripts/`, `tests/`, `examples/` | Валидаторы, управляемое исполнение, измерения и учебные сценарии |
 
 Координатор выбирает нужные этапы, регистрирует назначения и проверяет первичные
@@ -105,7 +107,16 @@ python3 scripts/run_test_automation.py \
 - [Импакт-анализ](docs/IMPACT_ANALYSIS.md), [измерения](docs/QA_IMPROVEMENTS.md), [benchmark](examples/benchmark/README.md).
 - [Тестовые данные](docs/TEST_DATA.md), [заглушки](docs/STUBS.md), [браузерный пул](docs/BROWSER_PROFILES.md), [HTML-вопросы](docs/QUESTIONS_UI.md).
 - [Ручные кейсы: JSON → вебхук GitVerse → Jenkins → ТестОпс](examples/testops-jenkins/README.md).
-- [Поставка 2.2.0](docs/RELEASE_2.2.0.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
+- [Поставка 2.3.0](docs/RELEASE_2.3.0.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
+
+## Сохранённые QA-задачи
+
+`/qa:tasks` показывает незавершённые задания проекта, `/qa:resume QA-123`
+восстанавливает выбранное по `.qa-agent-state/tasks/*/task.json`. Пустая `/qa`
+предлагает выбрать задачу или задать новую цель. Read-only MCP читает состояние;
+продолжение требует проверки владельца, доказательств и актуальных условий.
+Планы и кейсы команды — в Git, локальные реестры и доказательства — вне поставки.
+Единые пути и CLI fallback — [TASK_STORAGE.md](docs/TASK_STORAGE.md).
 
 ## Пределы проверки
 
