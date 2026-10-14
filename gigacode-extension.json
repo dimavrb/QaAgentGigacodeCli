@@ -1,0 +1,15 @@
+{
+  "name": "qa-agent",
+  "version": "2.1.4",
+  "description": "QA coordinator, specialist agents, skills and verified Python workflows",
+  "contextFileName": "GIGACODE_EXTENSION.md",
+  "agents": ".gigacode/agents",
+  "skills": ".gigacode/skills",
+  "commands": ".gigacode/commands",
+  "mcpServers": {
+    "qa-agent": {
+      "command": "python3",
+      "args": ["${extensionPath}/scripts/qa_extension_mcp.py"]
+    }
+  }
+}

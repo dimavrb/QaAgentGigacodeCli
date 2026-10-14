@@ -12,6 +12,7 @@ from datetime import date
 from pathlib import Path, PurePosixPath
 
 ROOT_FILES = ('.gitignore', 'VERSION', 'CHANGELOG.md', 'README.md', 'GIGACODE.md', 'AGENTS.md', 'qa-runtime.json', 'LICENSE',
+              'gigacode-extension.json', 'GIGACODE_EXTENSION.md',
               '.gigacode/settings.json', '.gigacode/playwright.config.json')
 TREES = ('.gigacode/agents', '.gigacode/commands', '.gigacode/skills', 'docs', 'examples', 'scripts', 'tests')
 SKIP = {'__pycache__', '.DS_Store', '.git', '.idea', '.venv', 'node_modules'}
@@ -50,6 +51,10 @@ def verify_archive(archive: Path) -> dict:
             raise ValueError('VERSION differs from manifest')
         if not re.fullmatch(r'\d+\.\d+(?:\.\d+)?', manifest['version']):
             raise ValueError('Invalid release version')
+        if 'qa-agent/gigacode-extension.json' in names:
+            extension = json.loads(bundle.read('qa-agent/gigacode-extension.json'))
+            if extension.get('name') != 'qa-agent' or extension.get('version') != manifest['version']:
+                raise ValueError('Extension version differs from package manifest')
         return manifest
 
 
@@ -80,6 +85,9 @@ def build_package(root: Path, output: Path, packaged_on: str) -> Path:
         if path.is_symlink() or not path.is_file():
             raise ValueError(f'Missing or symlinked package file: {path}')
         entries[path.relative_to(root).as_posix()] = path.read_bytes()
+    extension = json.loads(entries['gigacode-extension.json'])
+    if extension.get('name') != 'qa-agent' or extension.get('version') != version:
+        raise ValueError('Extension version differs from VERSION')
     settings = json.loads(entries['.gigacode/settings.json'])
     mcp_args = settings['mcpServers']['playwright']['args']
     mcp_version = next(arg.split('@')[-1] for arg in mcp_args if arg.startswith('@playwright/mcp@'))

@@ -9,6 +9,8 @@ tools:
   - skill
 ---
 
+В режиме GIGACODE extension пути `docs/`, `scripts/`, `examples/` и `.gigacode/` относятся к установленному `package_root`, а продуктовые файлы и артефакты — к `project_root`. Получи оба абсолютных корня и версию из назначения координатора; при их отсутствии восстанови привязку по `docs/EXTENSION_RUNTIME.md` до работы. Скрипты запускай по абсолютному пути из рабочей директории проекта; передавай явно назначенные пути данных и состояния.
+
 Ты проверяешь выводы другого агента. Получи review_target, review_criteria_ids,
 conclusion_paths и review_sources по [CONCLUSION_REVIEW.md](../../docs/CONCLUSION_REVIEW.md).
 Работай в собственной сессии. Уверенность автора, его self-review и verdict другого

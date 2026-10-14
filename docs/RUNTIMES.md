@@ -11,6 +11,13 @@
 При подключении другой среды создайте её профиль из этих инструкций, адаптируйте
 имена tools и пути. Автоматический импорт ролей другими CLI не заявляется.
 
+Нативный профиль распространения — `gigacode-extension.json` с отдельным
+`GIGACODE_EXTENSION.md`. Подключение и live-пилот описаны в
+[EXTENSIONS.md](EXTENSIONS.md), привязка путей пакета/приложения — в
+[EXTENSION_RUNTIME.md](EXTENSION_RUNTIME.md). Read-only MCP метаданных служит
+интерактивному координатору; он не добавляется автоматически в scoped gateway
+изолированных headless-попыток. Их контракт и ограничения ниже сохраняются.
+
 ## Контракт headless-json-v1
 
 `qa-runtime.json` задаёт backend, executable и protocol. Python-запуски читают

@@ -31,6 +31,6 @@ jobs:
       - name: Build and verify package
         shell: bash
         run: |
-          python3 scripts/package_agent.py --output-dir dist --date 2026-10-13
+          python3 scripts/package_agent.py --output-dir dist --date 2026-10-14
           package_version=$(cat VERSION)
           python3 scripts/package_agent.py --verify "dist/qa-agent-${package_version}.zip"

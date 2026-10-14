@@ -1,10 +1,29 @@
-# Установка QA-агента 2.1.3 в GIGACODE CLI
+# Установка QA-агента 2.1.4 в GIGACODE CLI
 
 Требуются установленный и авторизованный **GIGACODE CLI от GitVerse**, Python
 3.10+ и Git. Установка самого CLI и доступ к модели выполняются по правилам вашей
 организации. Не используйте одноимённые CLI других разработчиков.
 
 ## Подготовка
+
+Основной способ распространения — native extension. Откройте GIGACODE в корне
+приложения и проверьте менеджер `/extensions` и поддержку установки по `/help`.
+Для сборки с этим синтаксисом:
+
+```text
+/extensions install https://github.com/dimavrb/QaAgentGigacodeCli.git
+/qa:init
+/qa:doctor
+```
+
+CLI загружает роли, skills, команды и read-only MCP `qa_package_info` по
+`gigacode-extension.json`. `/qa:init` создаёт только локальную привязку, шаблон
+контекста приложения и ignore-правила; личные настройки не копируются из пакета.
+Сверьте версию в менеджере с `2.1.4`. Откройте новую сессию и проверьте
+`/extensions`, `/agents manage`, `/skills`, `/help`, `/mcp` и `/qa`.
+Подробности, установка локальной копии и пилот — [EXTENSIONS.md](EXTENSIONS.md).
+
+### Исходная Git-копия
 
 Клонируйте весь репозиторий, включая `.gigacode/`, либо распакуйте проверенный
 ZIP в новый каталог. `docs/`, `scripts/`, `tests/` и `examples/` являются частями
@@ -31,7 +50,8 @@ gigacode
 ## Настройка среды
 
 Модель, auth и личные MCP настраивайте в своей установке GIGACODE. Поставка
-содержит только Playwright MCP-шаблон с pin 0.0.83. Перед UI-работой проверьте
+содержит read-only MCP метаданных extension и отдельный Playwright MCP-шаблон
+с pin 0.0.83; Playwright не подключается автоматически манифестом. Перед UI-работой проверьте
 доступные tools, общий browser_pool_path и cleanup по [BROWSER_PROFILES.md](BROWSER_PROFILES.md).
 Jira требует отдельного навыка `jira-defect-creator` и доступа. Для sbermock
 нужно существующее фактическое MCP-соединение по [STUBS.md](STUBS.md).

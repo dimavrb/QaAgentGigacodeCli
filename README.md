@@ -1,4 +1,4 @@
-# QA Agent — GIGACODE CLI · 2.1.3
+# QA Agent — GIGACODE CLI · 2.1.4
 
 Переносимый QA-пакет: координатор, 14 специализированных ролей, 5 skills,
 проверяемые контракты результатов и Python-инструменты. Основной профиль —
@@ -12,19 +12,25 @@
 локальных процессов — macOS/Linux, Windows через WSL.
 
 ```bash
-git clone https://github.com/dimavrb/QaAgentGigacodeCli.git
-cd QaAgentGigacodeCli
 python3 --version
 gigacode --version
 gigacode
 ```
 
-В новой интерактивной сессии проверьте `/memory`, `/agents manage`, `/skills` и
-`/help`. Затем передайте задачу:
+В сборке CLI с нативными extensions установите пакет через менеджер расширений.
+Поддержку команды сверяйте с `/help` вашей сборки:
 
 ```text
+/extensions install https://github.com/dimavrb/QaAgentGigacodeCli.git
+/qa:init
+/qa:doctor
 /qa Составь тест-план для фильтрации по следующим требованиям: …
 ```
+
+В новой сессии проверьте `/extensions`, `/memory`, `/agents manage`, `/skills`,
+`/help` и `/mcp`. Пилот загрузки целевой сборкой CLI обязателен:
+локальные тесты не подтверждают поведение менеджера расширений.
+Установка из исходной Git-копии также поддерживается по [INSTALL.md](docs/INSTALL.md).
 
 Начните с задачи по требованиям, без внешних систем. Для реальных проверок
 укажите стенд, сборку, данные, разрешённые действия и источники ожиданий.
@@ -43,6 +49,8 @@ gigacode
 | `.gigacode/commands/qa.md` | Команда `/qa` |
 | `.gigacode/settings.json` | Переносимый Playwright MCP-профиль без credentials |
 | `qa-runtime.json` | Исполнитель по умолчанию и контракт headless-запуска |
+| `gigacode-extension.json`, `GIGACODE_EXTENSION.md` | Манифест и контекст расширения |
+| `scripts/qa_project.py`, `scripts/qa_extension_mcp.py` | Привязка проекта, диагностика и read-only обнаружение путей |
 | `scripts/`, `tests/`, `examples/` | Валидаторы, управляемое исполнение, измерения и учебные сценарии |
 
 Координатор выбирает нужные этапы, регистрирует назначения и проверяет первичные
@@ -77,6 +85,7 @@ python3 scripts/run_test_automation.py \
 ## Документация
 
 - [Установка](docs/INSTALL.md), [перенос в приложение](docs/IMPORT_INTO_APP.md), [обновление](docs/SETUP_AND_UPDATE.md).
+- [Распространение как extension](docs/EXTENSIONS.md), [пути и состояние](docs/EXTENSION_RUNTIME.md).
 - [Среды исполнения и переносимость](docs/RUNTIMES.md), [миграция на GIGACODE](docs/UPGRADE_2.1.2.md).
 - [Маршруты](docs/WORKFLOWS.md), [контракт](docs/CONTRACT.md), [приёмка](docs/TASK_ACCEPTANCE.md).
 - [Управляемое исполнение](docs/MANAGED_EXECUTION.md), [MCP-шлюз](docs/ACTION_GATEWAY.md), [сборка контекста](docs/CONTEXT_ASSEMBLY.md).
@@ -84,7 +93,7 @@ python3 scripts/run_test_automation.py \
 - [Импакт-анализ](docs/IMPACT_ANALYSIS.md), [измерения](docs/QA_IMPROVEMENTS.md), [benchmark](examples/benchmark/README.md).
 - [Тестовые данные](docs/TEST_DATA.md), [заглушки](docs/STUBS.md), [браузерный пул](docs/BROWSER_PROFILES.md), [HTML-вопросы](docs/QUESTIONS_UI.md).
 - [Ручные кейсы: JSON → вебхук GitVerse → Jenkins → ТестОпс](examples/testops-jenkins/README.md).
-- [Поставка 2.1.3](docs/RELEASE_2.1.3.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
+- [Поставка 2.1.4](docs/RELEASE_2.1.4.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
 
 ## Пределы проверки
 

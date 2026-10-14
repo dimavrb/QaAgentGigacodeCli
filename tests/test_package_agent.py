@@ -22,6 +22,7 @@ class PackageTests(unittest.TestCase):
         for name in ROOT_FILES:
             (self.root / name).write_text('fixture\n')
         (self.root / 'VERSION').write_text('1.1\n')
+        (self.root / 'gigacode-extension.json').write_text(json.dumps({'name': 'qa-agent', 'version': '1.1'}))
         (self.root / '.gigacode/settings.json').write_text(json.dumps({'mcpServers': {'playwright': {'args': ['@playwright/mcp@0.0.83']}}}))
 
     def build(self):
@@ -67,6 +68,12 @@ class PackageTests(unittest.TestCase):
         (self.root / 'VERSION').write_text('../outside')
         with self.assertRaisesRegex(ValueError, 'numeric release version'):
             self.build()
+
+    def test_extension_version_mismatch_is_rejected_before_build(self):
+        (self.root / 'gigacode-extension.json').write_text(json.dumps({'name': 'qa-agent', 'version': '9.9.9'}))
+        with self.assertRaisesRegex(ValueError, 'Extension version differs'):
+            self.build()
+        self.assertFalse(self.output.exists())
 
 
 if __name__ == '__main__':
