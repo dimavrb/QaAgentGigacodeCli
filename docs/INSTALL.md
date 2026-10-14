@@ -1,4 +1,4 @@
-# Установка QA-агента 2.1.4 в GIGACODE CLI
+# Установка QA-агента 2.1.5 в GIGACODE CLI
 
 Требуются установленный и авторизованный **GIGACODE CLI от GitVerse**, Python
 3.10+ и Git. Установка самого CLI и доступ к модели выполняются по правилам вашей
@@ -6,12 +6,26 @@
 
 ## Подготовка
 
-Основной способ распространения — native extension. Откройте GIGACODE в корне
-приложения и проверьте менеджер `/extensions` и поддержку установки по `/help`.
-Для сборки с этим синтаксисом:
+Основной способ распространения — native extension из локальной Git-копии.
+Сначала сохраните пакет отдельно от продукта:
+
+```bash
+mkdir -p "$HOME/qa-tools"
+git clone https://github.com/dimavrb/QaAgentGigacodeCli.git "$HOME/qa-tools/qa-agent"
+gigacode extensions install "$HOME/qa-tools/qa-agent"
+```
+
+Git URL не передавайте в install. Если используете менеджер внутри GIGACODE,
+выберите установку и укажите полный локальный путь к этой папке. Например,
+при поддержке такой командной формы:
 
 ```text
-/extensions install https://github.com/dimavrb/QaAgentGigacodeCli.git
+/extensions install /absolute/path/to/qa-agent
+```
+
+Откройте новую сессию из папки приложения:
+
+```text
 /qa:init
 /qa:doctor
 ```
@@ -19,9 +33,10 @@
 CLI загружает роли, skills, команды и read-only MCP `qa_package_info` по
 `gigacode-extension.json`. `/qa:init` создаёт только локальную привязку, шаблон
 контекста приложения и ignore-правила; личные настройки не копируются из пакета.
-Сверьте версию в менеджере с `2.1.4`. Откройте новую сессию и проверьте
+Сверьте версию в менеджере с `2.1.5`. Откройте новую сессию и проверьте
 `/extensions`, `/agents manage`, `/skills`, `/help`, `/mcp` и `/qa`.
 Подробности, установка локальной копии и пилот — [EXTENSIONS.md](EXTENSIONS.md).
+Для автообновления настройте `qa-start` по [AUTO_UPDATE.md](AUTO_UPDATE.md).
 
 ### Исходная Git-копия
 

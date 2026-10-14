@@ -15,7 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path('.qa-agent/project.local.json')
 CONTEXT = Path('.qa-agent/APP_CONTEXT.md')
-IGNORE_LINES = ('/.qa-agent/project.local.json', '/.qa-agent-state/', '/.qa-agent/artifacts/')
+IGNORE_LINES = ('/.qa-agent/project.local.json', '/.qa-agent/update.local.json',
+                '/.qa-agent-state/', '/.qa-agent/artifacts/')
 CONFIG_FIELDS = {'schema_version', 'package_name', 'package_version', 'package_root', 'project_root'}
 
 

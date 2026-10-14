@@ -1,4 +1,4 @@
-# QA Agent — GIGACODE CLI · 2.1.4
+# QA Agent — GIGACODE CLI · 2.1.5
 
 Переносимый QA-пакет: координатор, 14 специализированных ролей, 5 skills,
 проверяемые контракты результатов и Python-инструменты. Основной профиль —
@@ -12,20 +12,31 @@
 локальных процессов — macOS/Linux, Windows через WSL.
 
 ```bash
+mkdir -p "$HOME/qa-tools"
+git clone https://github.com/dimavrb/QaAgentGigacodeCli.git "$HOME/qa-tools/qa-agent"
 python3 --version
 gigacode --version
-gigacode
+gigacode extensions install "$HOME/qa-tools/qa-agent"
 ```
 
-В сборке CLI с нативными extensions установите пакет через менеджер расширений.
-Поддержку команды сверяйте с `/help` вашей сборки:
+Установка принимает локальную папку: Git URL используется только командой
+`git clone`. Затем откройте `gigacode` из папки приложения и выполните:
 
 ```text
-/extensions install https://github.com/dimavrb/QaAgentGigacodeCli.git
 /qa:init
 /qa:doctor
 /qa Составь тест-план для фильтрации по следующим требованиям: …
 ```
+
+Для автоматического обновления перед QA-сессией добавьте alias в свой shell:
+
+```bash
+alias qa-start='python3 "$HOME/qa-tools/qa-agent/scripts/qa_start.py"'
+```
+
+Дальше запускайте `qa-start` из папки приложения. Он проверит локальный clone,
+обновит пакет при новой версии, сохранит контекст и откроет GIGACODE.
+Подробности и условия переноса обновления — [AUTO_UPDATE.md](docs/AUTO_UPDATE.md).
 
 В новой сессии проверьте `/extensions`, `/memory`, `/agents manage`, `/skills`,
 `/help` и `/mcp`. Пилот загрузки целевой сборкой CLI обязателен:
@@ -86,6 +97,7 @@ python3 scripts/run_test_automation.py \
 
 - [Установка](docs/INSTALL.md), [перенос в приложение](docs/IMPORT_INTO_APP.md), [обновление](docs/SETUP_AND_UPDATE.md).
 - [Распространение как extension](docs/EXTENSIONS.md), [пути и состояние](docs/EXTENSION_RUNTIME.md).
+- [Автообновление при запуске QA-сессии](docs/AUTO_UPDATE.md).
 - [Среды исполнения и переносимость](docs/RUNTIMES.md), [миграция на GIGACODE](docs/UPGRADE_2.1.2.md).
 - [Маршруты](docs/WORKFLOWS.md), [контракт](docs/CONTRACT.md), [приёмка](docs/TASK_ACCEPTANCE.md).
 - [Управляемое исполнение](docs/MANAGED_EXECUTION.md), [MCP-шлюз](docs/ACTION_GATEWAY.md), [сборка контекста](docs/CONTEXT_ASSEMBLY.md).
@@ -93,7 +105,7 @@ python3 scripts/run_test_automation.py \
 - [Импакт-анализ](docs/IMPACT_ANALYSIS.md), [измерения](docs/QA_IMPROVEMENTS.md), [benchmark](examples/benchmark/README.md).
 - [Тестовые данные](docs/TEST_DATA.md), [заглушки](docs/STUBS.md), [браузерный пул](docs/BROWSER_PROFILES.md), [HTML-вопросы](docs/QUESTIONS_UI.md).
 - [Ручные кейсы: JSON → вебхук GitVerse → Jenkins → ТестОпс](examples/testops-jenkins/README.md).
-- [Поставка 2.1.4](docs/RELEASE_2.1.4.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
+- [Поставка 2.1.5](docs/RELEASE_2.1.5.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
 
 ## Пределы проверки
 
