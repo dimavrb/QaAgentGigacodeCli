@@ -10,6 +10,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from qa_project import CONFIG, CONTEXT, doctor, initialize, package_info
+from qa_extension_mcp import ToolDispatcher, handle
 
 
 class ExtensionProjectTests(unittest.TestCase):
@@ -174,6 +175,27 @@ class ExtensionProjectTests(unittest.TestCase):
 
 
 class ExtensionMCPTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.project = Path(self.temporary.name).resolve()
+        self.dispatcher = ToolDispatcher()
+
+    def call(self, name, arguments):
+        return handle({'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
+                       'params': {'name': name, 'arguments': arguments}}, self.dispatcher)
+
+    def snapshot(self):
+        return {str(p.relative_to(self.project)): p.read_bytes()
+                for p in self.project.rglob('*') if p.is_file()}
+
+    def moved_binding(self):
+        initialize(self.project)
+        binding = json.loads((self.project / CONFIG).read_text())
+        binding['package_root'] = str(self.project / 'old-package')
+        (self.project / CONFIG).write_text(json.dumps(binding))
+        return binding
+
     def run_server(self, messages, cwd):
         result = subprocess.run([sys.executable, str(ROOT / 'scripts/qa_extension_mcp.py')],
                                 input='\n'.join(messages) + '\n', cwd=cwd,
@@ -192,8 +214,16 @@ class ExtensionMCPTests(unittest.TestCase):
             responses = self.run_server(messages, directory)
             self.assertEqual(3, len(responses))
             self.assertEqual('2025-03-26', responses[0]['result']['protocolVersion'])
-            self.assertTrue(responses[1]['result']['tools'][0]['annotations']['readOnlyHint'])
-            self.assertEqual(1, len(responses[1]['result']['tools']))
+            tools = {tool['name']: tool for tool in responses[1]['result']['tools']}
+            self.assertEqual({'qa_package_info', 'qa_project_init', 'qa_project_doctor'}, set(tools))
+            self.assertTrue(tools['qa_package_info']['annotations']['readOnlyHint'])
+            self.assertTrue(tools['qa_project_doctor']['annotations']['readOnlyHint'])
+            self.assertFalse(tools['qa_project_init']['annotations']['readOnlyHint'])
+            self.assertTrue(tools['qa_project_init']['annotations']['idempotentHint'])
+            self.assertEqual(False, tools['qa_project_init']['inputSchema']['properties']['rebind']['default'])
+            for name in ('qa_project_init', 'qa_project_doctor'):
+                self.assertEqual(['project_root'], tools[name]['inputSchema']['required'])
+                self.assertFalse(tools[name]['inputSchema']['additionalProperties'])
             info = json.loads(responses[2]['result']['content'][0]['text'])
             self.assertEqual(str(ROOT), info['package_root'])
             self.assertEqual([], list(Path(directory).iterdir()))
@@ -201,11 +231,141 @@ class ExtensionMCPTests(unittest.TestCase):
     def test_unknown_tools_arguments_and_malformed_messages_are_rejected(self):
         requests = ['bad json', '[]', *[json.dumps({'jsonrpc': '2.0', 'id': index,
             'method': 'tools/call', 'params': params}) for index, params in enumerate((
-                {'name': 'write_file'}, {'name': 'qa_package_info', 'arguments': {'path': '/tmp'}}), start=1)]]
+                {'name': 'write_file'}, {'name': 'qa_package_info', 'arguments': {'path': '/tmp'}},
+                {'name': 'qa_project_init', 'arguments': {}},
+                {'name': 'qa_project_doctor', 'arguments': {'project_root': '/tmp', 'rebind': True}},
+                {'name': 'qa_project_init', 'arguments': {'project_root': '/tmp', 'rebind': 1}},
+                {'name': 'qa_project_init', 'arguments': []},
+                {'name': ['qa_project_init']}), start=1)]]
         with tempfile.TemporaryDirectory() as directory:
             results = self.run_server(requests, directory)
             self.assertTrue(all('error' in response for response in results))
             self.assertEqual([], list(Path(directory).iterdir()))
+
+    def test_init_calls_python_directly_and_writes_only_binding_files_idempotently(self):
+        (self.project / 'GIGACODE.md').write_text('Product rules')
+        with patch('qa_extension_mcp.initialize', wraps=initialize) as init, patch(
+                'qa_project.subprocess.run', side_effect=AssertionError('No child process allowed')):
+            result = self.call('qa_project_init', {'project_root': str(self.project)})['result']
+            self.assertNotIn('isError', result)
+            data = json.loads(result['content'][0]['text'])
+            self.assertEqual('configured', data['status'])
+            self.assertEqual({'.gitignore', CONTEXT.as_posix(), CONFIG.as_posix()}, set(data['changed_files']))
+            self.assertEqual({'GIGACODE.md', '.gitignore', CONTEXT.as_posix(), CONFIG.as_posix()}, set(self.snapshot()))
+            (self.project / CONTEXT).write_text('Reviewed context')
+            before = self.snapshot()
+            second = self.call('qa_project_init', {'project_root': str(self.project), 'rebind': False})['result']
+            self.assertEqual([], json.loads(second['content'][0]['text'])['changed_files'])
+            self.assertEqual(before, self.snapshot())
+            self.assertEqual(2, init.call_count)
+
+    def test_relative_paths_rejected_before_initializer_or_doctor(self):
+        with patch('qa_extension_mcp.initialize') as init, patch('qa_extension_mcp.doctor') as diagnostic:
+            for name in ('qa_project_init', 'qa_project_doctor'):
+                for path in ('application', '.', '', None, 42):
+                    with self.subTest(name=name, path=path):
+                        response = self.call(name, {'project_root': path})
+                        self.assertEqual(-32602, response['error']['code'])
+                        self.assertIn('absolute path', response['error']['message'])
+            init.assert_not_called()
+            diagnostic.assert_not_called()
+        self.assertEqual({}, self.snapshot())
+
+    def test_initialize_errors_have_cli_text_in_tool_result(self):
+        for exc in (ValueError('invalid binding'), OSError('permission denied'), TypeError('bad configuration')):
+            with self.subTest(exc=exc), patch('qa_extension_mcp.initialize', side_effect=exc):
+                response = self.call('qa_project_init', {'project_root': str(self.project)})
+                self.assertNotIn('error', response)
+                self.assertTrue(response['result']['isError'])
+                self.assertEqual(f'QA project error: {exc}', response['result']['content'][0]['text'])
+
+    def test_stdio_execution_errors_return_content_and_server_continues(self):
+        requests = [json.dumps({'jsonrpc': '2.0', 'id': index, 'method': 'tools/call',
+            'params': {'name': name, 'arguments': arguments}}) for index, (name, arguments) in enumerate((
+                ('qa_project_init', {'project_root': str(self.project / 'missing')}),
+                ('qa_package_info', {})), start=1)]
+        responses = self.run_server(requests, self.project)
+        self.assertTrue(responses[0]['result']['isError'])
+        self.assertEqual('QA project error: project directory must already exist',
+                         responses[0]['result']['content'][0]['text'])
+        self.assertEqual(str(ROOT), json.loads(responses[1]['result']['content'][0]['text'])['package_root'])
+        self.assertEqual({}, self.snapshot())
+
+    def test_doctor_needs_attention_is_read_only_normal_result(self):
+        with patch('qa_extension_mcp.doctor', wraps=doctor) as diagnostic, patch(
+                'qa_project.shutil.which', return_value=None), patch('qa_project.subprocess.run') as child:
+            response = self.call('qa_project_doctor', {'project_root': str(self.project)})
+            diagnostic.assert_called_once_with(self.project)
+            child.assert_not_called()
+        self.assertNotIn('isError', response['result'])
+        self.assertEqual('needs_attention', json.loads(response['result']['content'][0]['text'])['status'])
+        self.assertEqual({}, self.snapshot())
+
+    def test_doctor_only_runs_existing_version_probe(self):
+        initialize(self.project)
+        before = self.snapshot()
+        with patch('qa_project.shutil.which', return_value='/fake/gigacode'), patch(
+                'qa_project.subprocess.run', return_value=subprocess.CompletedProcess([], 0, 'fixture 1\n', '')) as child:
+            result = self.call('qa_project_doctor', {'project_root': str(self.project)})['result']
+            child.assert_called_once_with(['/fake/gigacode', '--version'], capture_output=True, text=True, timeout=10)
+        data = json.loads(result['content'][0]['text'])
+        self.assertEqual('ready_for_cli_check', data['status'])
+        self.assertFalse(data['live_extension_verified'])
+        self.assertEqual(before, self.snapshot())
+
+    def test_rebind_requires_prior_preview_and_then_preserves_context(self):
+        old = self.moved_binding()['package_root']
+        (self.project / CONTEXT).write_text('Reviewed context')
+        before = self.snapshot()
+        arguments = {'project_root': str(self.project), 'rebind': True}
+        with patch('qa_extension_mcp.initialize', wraps=initialize) as init:
+            refused = self.call('qa_project_init', arguments)['result']
+            self.assertTrue(refused['isError'])
+            init.assert_not_called()
+            self.assertEqual(before, self.snapshot())
+            preview = self.call('qa_project_init', {'project_root': str(self.project)})['result']
+            self.assertTrue(preview['isError'])
+            text = preview['content'][0]['text']
+            self.assertIn('QA project error: package path changed;', text)
+            self.assertIn(f'Old package path: {old}', text)
+            self.assertIn(f'New package path: {ROOT}', text)
+            self.assertEqual(before, self.snapshot())
+            result = self.call('qa_project_init', arguments)['result']
+            self.assertNotIn('isError', result)
+            self.assertEqual([CONFIG.as_posix()], json.loads(result['content'][0]['text'])['changed_files'])
+            self.assertEqual('Reviewed context', (self.project / CONTEXT).read_text())
+
+    def test_rebind_preview_is_scoped_to_session_project_and_current_paths(self):
+        self.moved_binding()
+        arguments = {'project_root': str(self.project)}
+        self.call('qa_project_init', arguments)
+        before = self.snapshot()
+        other_session = ToolDispatcher()
+        response = handle({'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
+                           'params': {'name': 'qa_project_init', 'arguments': {**arguments, 'rebind': True}}}, other_session)
+        self.assertTrue(response['result']['isError'])
+        self.assertEqual(before, self.snapshot())
+        with tempfile.TemporaryDirectory() as other:
+            self.assertTrue(self.call('qa_project_init', {'project_root': other, 'rebind': True})['result']['isError'])
+            self.assertEqual([], list(Path(other).iterdir()))
+        binding = json.loads((self.project / CONFIG).read_text())
+        binding['package_root'] = str(self.project / 'another-old-package')
+        (self.project / CONFIG).write_text(json.dumps(binding))
+        before = self.snapshot()
+        self.assertTrue(self.call('qa_project_init', {**arguments, 'rebind': True})['result']['isError'])
+        self.assertEqual(before, self.snapshot())
+        # A fresh preview is required after changed paths or a consumed review.
+        self.call('qa_project_init', arguments)
+        self.assertNotIn('isError', self.call('qa_project_init', {**arguments, 'rebind': True})['result'])
+
+    def test_stdio_project_tools_initialize_and_diagnose(self):
+        messages = [json.dumps({'jsonrpc': '2.0', 'id': index, 'method': 'tools/call',
+                   'params': {'name': name, 'arguments': {'project_root': str(self.project)}}})
+                    for index, name in enumerate(('qa_project_init', 'qa_project_doctor'), start=1)]
+        responses = self.run_server(messages, self.project)
+        self.assertEqual('configured', json.loads(responses[0]['result']['content'][0]['text'])['status'])
+        self.assertNotIn('isError', responses[1]['result'])
+        self.assertEqual({'.gitignore', CONTEXT.as_posix(), CONFIG.as_posix()}, set(self.snapshot()))
 
 
 if __name__ == '__main__':

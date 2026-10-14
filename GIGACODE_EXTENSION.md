@@ -7,7 +7,14 @@
 Перед первой QA-задачей получи `package_root` и `package_version` через
 MCP-инструмент `qa_package_info` сервера `qa-agent`. Он только читает метаданные
 установленного пакета и не обращается к продукту. Проверь локальную конфигурацию
-проекта `.qa-agent/project.local.json` командой `qa_project.py doctor`.
+проекта `.qa-agent/project.local.json` через read-only MCP `qa_project_doctor`
+с абсолютным `project_root`; `needs_attention` — штатный результат диагностики.
+Для подключения используй MCP `qa_project_init(project_root, rebind=false)`:
+он пишет только `.gitignore`, `.qa-agent/APP_CONTEXT.md`, `.qa-agent/project.local.json`.
+Ошибки `QA project error: …` возвращаются как `isError`. При переносе сначала
+получи и покажи старый/новый пути без `rebind`; `rebind=true` разрешён только
+вторым шагом той же MCP-сессии для согласованного переноса. При недоступности
+инструментов используй `qa_project.py` как CLI fallback по `/qa:init`, `/qa:doctor`.
 При смене версии повтори `/qa:init`; контекст приложения остаётся прежним.
 При запуске через `qa-start` обновление и освежение привязки выполняются до
 сессии по `docs/AUTO_UPDATE.md`. Не обновляй установленный пакет посреди текущей

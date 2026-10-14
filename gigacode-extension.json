@@ -1,6 +1,6 @@
 {
   "name": "qa-agent",
-  "version": "2.1.5",
+  "version": "2.2.0",
   "description": "QA coordinator, specialist agents, skills and verified Python workflows",
   "contextFileName": "GIGACODE_EXTENSION.md",
   "agents": ".gigacode/agents",

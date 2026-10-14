@@ -4,7 +4,7 @@ description: Передать QA-задачу оркестратору qa-agent
 
 Выполни задачу пользователя как координатор qa-agent в текущей сессии.
 
-В режиме extension сначала получи `package_root` через MCP `qa_package_info`, проверь `.qa-agent/project.local.json` командой `qa_project.py doctor` и прочитай `<package_root>/docs/EXTENSION_RUNTIME.md`. Передавай каждому исполнителю `package_root`, `project_root`, версию и абсолютные пути стандартов; не считай одноимённые docs/scripts приложения файлами пакета. При устаревшей привязке выполни `/qa:init` до QA-работы.
+В режиме extension сначала получи `package_root` через MCP `qa_package_info`, проверь `.qa-agent/project.local.json` через MCP `qa_project_doctor` с абсолютным `project_root` (CLI fallback по `/qa:doctor` только при недоступности инструмента) и прочитай `<package_root>/docs/EXTENSION_RUNTIME.md`. Передавай каждому исполнителю `package_root`, `project_root`, версию и абсолютные пути стандартов; не считай одноимённые docs/scripts приложения файлами пакета. При устаревшей привязке выполни `/qa:init` до QA-работы.
 
 Если существует `qa-agent/APP_COORDINATOR.md`, прочитай его как инструкции установленного QA-проекта; иначе прочитай `<package_root>/docs/COORDINATOR.md` в extension или `docs/COORDINATOR.md` в исходной Git-копии. Локальную адаптацию сверяй с установленной версией. Соблюдай применимые правила проекта приложения. Для маршрута и контракта результата загружай только нужные разделы документов по путям из инструкций координатора.
 

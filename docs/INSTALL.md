@@ -1,4 +1,4 @@
-# Установка QA-агента 2.1.5 в GIGACODE CLI
+# Установка QA-агента 2.2.0 в GIGACODE CLI
 
 Требуются установленный и авторизованный **GIGACODE CLI от GitVerse**, Python
 3.10+ и Git. Установка самого CLI и доступ к модели выполняются по правилам вашей
@@ -30,10 +30,18 @@ Git URL не передавайте в install. Если используете 
 /qa:doctor
 ```
 
-CLI загружает роли, skills, команды и read-only MCP `qa_package_info` по
-`gigacode-extension.json`. `/qa:init` создаёт только локальную привязку, шаблон
-контекста приложения и ignore-правила; личные настройки не копируются из пакета.
-Сверьте версию в менеджере с `2.1.5`. Откройте новую сессию и проверьте
+CLI загружает роли, skills, команды и stdio MCP по `gigacode-extension.json`.
+В `/mcp` должны быть три инструмента: `qa_package_info`, `qa_project_init`,
+`qa_project_doctor`. `/qa:init` и `/qa:doctor` прежде всего вызывают MCP;
+CLI fallback используется только при недоступности соответствующего инструмента.
+Передавайте абсолютный `project_root`. Init идемпотентен и пишет только
+`.gitignore`, `.qa-agent/APP_CONTEXT.md`, `.qa-agent/project.local.json`, сохраняя
+существующий контекст. Перенос пакета: сначала вызов без `rebind`, показ старого/нового
+пути и разрешение переноса, затем `rebind=true` в той же MCP-сессии.
+Ошибки приходят как `isError` с `QA project error: …`. Doctor read-only:
+`needs_attention` — штатный результат, единственный дочерний вызов —
+существующий зонд `gigacode --version`. Личные настройки не копируются из пакета.
+Сверьте версию в менеджере с `2.2.0`. Откройте новую сессию и проверьте
 `/extensions`, `/agents manage`, `/skills`, `/help`, `/mcp` и `/qa`.
 Подробности, установка локальной копии и пилот — [EXTENSIONS.md](EXTENSIONS.md).
 Для автообновления настройте `qa-start` по [AUTO_UPDATE.md](AUTO_UPDATE.md).
@@ -65,7 +73,7 @@ gigacode
 ## Настройка среды
 
 Модель, auth и личные MCP настраивайте в своей установке GIGACODE. Поставка
-содержит read-only MCP метаданных extension и отдельный Playwright MCP-шаблон
+содержит MCP метаданных, инициализации и диагностики extension и отдельный Playwright MCP-шаблон
 с pin 0.0.83; Playwright не подключается автоматически манифестом. Перед UI-работой проверьте
 доступные tools, общий browser_pool_path и cleanup по [BROWSER_PROFILES.md](BROWSER_PROFILES.md).
 Jira требует отдельного навыка `jira-defect-creator` и доступа. Для sbermock
