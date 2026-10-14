@@ -1,4 +1,4 @@
-# QA Agent — GIGACODE CLI · 2.3.0
+# QA Agent — GIGACODE CLI · 2.3.1
 
 Переносимый QA-пакет: координатор, 14 специализированных ролей, 5 skills,
 проверяемые контракты результатов и Python-инструменты. Основной профиль —
@@ -107,7 +107,8 @@ python3 scripts/run_test_automation.py \
 - [Импакт-анализ](docs/IMPACT_ANALYSIS.md), [измерения](docs/QA_IMPROVEMENTS.md), [benchmark](examples/benchmark/README.md).
 - [Тестовые данные](docs/TEST_DATA.md), [заглушки](docs/STUBS.md), [браузерный пул](docs/BROWSER_PROFILES.md), [HTML-вопросы](docs/QUESTIONS_UI.md).
 - [Ручные кейсы: JSON → вебхук GitVerse → Jenkins → ТестОпс](examples/testops-jenkins/README.md).
-- [Поставка 2.3.0](docs/RELEASE_2.3.0.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
+- [Отбор ручных сценариев](docs/TEST_CASE_SELECTION.md), [понятные шаги](docs/TEST_CASE_STYLE.md), [тестовая задача навыка](docs/TEST_CASE_PILOT.md).
+- [Поставка 2.3.1](docs/RELEASE_2.3.1.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
 
 ## Сохранённые QA-задачи
 

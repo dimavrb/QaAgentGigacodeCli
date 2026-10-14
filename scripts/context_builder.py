@@ -69,7 +69,8 @@ def profile(assignment, step):
     if role in QUALITY_ROLES: add('.gigacode/skills/qa-check-quality/SKILL.md')
     if role in ('qa-analyst','qa-test-plan-writer'):
         add('docs/TEST_PLAN.md','sections',['','Маршрут','Выбор сценариев до детализации','Смысловые дубли','Вопросы и частичная готовность','Адресные изменения и ревью','Проверка артефактов'])
-        add('docs/TEST_DESIGN.md'); add('docs/TEST_CASE_STYLE.md')
+        add('docs/TEST_DESIGN.md'); add('docs/TEST_CASE_STYLE.md'); add('docs/TEST_CASE_SELECTION.md')
+    if role == 'qa-test-plan-writer': add('.gigacode/skills/qa-test-cases/SKILL.md')
     if role in ('qa-test-automation','qa-autotest-reviewer'):
         add('docs/AUTOTEST_QUALITY.md'); add('docs/AUTOTEST_NAMING.md'); add('docs/TEST_CASE_STYLE.md')
     if role in REVIEWERS:

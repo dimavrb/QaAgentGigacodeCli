@@ -60,6 +60,35 @@ class ProjectionTests(unittest.TestCase):
         self.assertIn('docs/REVIEW_EXECUTION.md',cb.profile(role,dict(gateway_policy={'tools':{}}))['documents'])
         self.assertIn('docs/REVIEW_DISCUSSION.md',cb.profile(dict(role,review_discussion={'round':1}),{})['documents'])
 
+    def test_manual_case_workflow_is_delivered_to_bare_planner_and_reviewer(self):
+        required={'docs/TEST_CASE_SELECTION.md','docs/TEST_CASE_STYLE.md',
+                  '.gigacode/skills/qa-test-cases/SKILL.md',
+                  '.gigacode/skills/qa-check-quality/SKILL.md'}
+        for mode in ('compact','full'):
+            profile=cb.profile(dict(agent='qa-test-plan-writer'),dict(context_mode=mode))
+            self.assertTrue(required <= set(profile['documents']))
+            hashes={name:exchange.fingerprint(ROOT/name) for name in profile['documents']}
+            step=dict(context_profile=profile,instruction_hashes=hashes,
+                      context_builder_sha256=exchange.fingerprint(Path(cb.__file__)))
+            snapshots=cb.snapshots(step)
+            for name in required:
+                self.assertEqual((ROOT/name).read_text(),snapshots[name])
+            step['instruction_hashes']['docs/TEST_CASE_SELECTION.md']='0'*64
+            with self.assertRaisesRegex(ValueError,'Managed instructions changed'):
+                cb.snapshots(step)
+        unrelated=cb.profile(dict(agent='qa-test-data-builder'),{})['documents']
+        self.assertFalse(required & set(unrelated))
+        manual_paths=sorted(required-{'.gigacode/skills/qa-check-quality/SKILL.md'})
+        for mode in ('compact','full'):
+            profile=cb.profile(dict(agent='qa-result-reviewer'),
+                               dict(context_mode=mode,instruction_paths=manual_paths))
+            self.assertTrue(required <= set(profile['documents']))
+            step=dict(context_profile=profile,
+                      instruction_hashes={name:exchange.fingerprint(ROOT/name) for name in profile['documents']},
+                      context_builder_sha256=exchange.fingerprint(Path(cb.__file__)))
+            for name in required:
+                self.assertEqual((ROOT/name).read_text(),cb.snapshots(step)[name])
+
     def test_missing_or_duplicate_section_is_error_not_silent_reduction(self):
         with self.assertRaisesRegex(ValueError,'missing'):cb.select('## Other\ntext',['Required'])
         with self.assertRaisesRegex(ValueError,'Duplicate'):cb.select('## One\na\n## One\nb',['One'])

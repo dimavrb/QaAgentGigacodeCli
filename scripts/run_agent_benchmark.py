@@ -75,6 +75,9 @@ def instructions(case_id, self_review, check_quality=True, role=None, profile_sk
         paths.append(ROOT / '.gigacode/agents' / f'{role}.md')
     if role in ('qa-analyst', 'qa-test-plan-writer'):
         paths.append(ROOT / 'docs/TEST_PLAN.md')
+        paths.append(ROOT / 'docs/TEST_CASE_SELECTION.md')
+    if role == 'qa-test-plan-writer':
+        paths.append(ROOT / '.gigacode/skills/qa-test-cases/SKILL.md')
     if role in ('qa-test-automation', 'qa-autotest-reviewer'):
         paths.append(ROOT / 'docs/AUTOTEST_QUALITY.md')
         paths.append(ROOT / 'docs/AUTOTEST_NAMING.md')

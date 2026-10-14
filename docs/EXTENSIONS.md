@@ -1,6 +1,6 @@
 # QA Agent как GIGACODE extension
 
-Пакет 2.3.0 содержит `gigacode-extension.json`, отдельный контекст расширения,
+Пакет 2.3.1 содержит `gigacode-extension.json`, отдельный контекст расширения,
 14 ролей, 5 skills и команды `/qa`, `/qa:init`, `/qa:doctor`, `/qa:tasks`,
 `/qa:resume`. Манифест подключает stdio MCP с пятью инструментами: read-only `qa_package_info` для обнаружения
 абсолютного пути и версии, `qa_project_init` для подключения проекта и read-only

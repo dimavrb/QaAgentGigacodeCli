@@ -1,8 +1,8 @@
 # Настройка и обновление QA-пакета
 
-Текущий профиль — **GIGACODE CLI, 2.3.0**. Первая установка — [INSTALL.md](INSTALL.md),
+Текущий профиль — **GIGACODE CLI, 2.3.1**. Первая установка — [INSTALL.md](INSTALL.md),
 перенос в приложение — [IMPORT_INTO_APP.md](IMPORT_INTO_APP.md), переход с предыдущей версии —
-[UPGRADE_2.3.0.md](UPGRADE_2.3.0.md). Прежние релизные документы доступны в истории Git; текущая поставка содержит
+[UPGRADE_2.3.1.md](UPGRADE_2.3.1.md). Прежние релизные документы доступны в истории Git; текущая поставка содержит
 инструкции только для GIGACODE и общего CLI-контракта.
 
 Для extension установите локальный Git clone и настройте `qa-start` по
@@ -41,7 +41,7 @@ gigacode
 Для ZIP проверьте checksum и manifest:
 
 ```bash
-python3 scripts/package_agent.py --verify /absolute/path/qa-agent-2.3.0.zip
+python3 scripts/package_agent.py --verify /absolute/path/qa-agent-2.3.1.zip
 ```
 
 Для отката восстановите пакет и согласованные адаптации из предыдущего commit/ZIP.
