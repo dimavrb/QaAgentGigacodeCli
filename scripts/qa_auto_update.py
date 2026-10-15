@@ -361,7 +361,14 @@ def update(source: Path, project: Path, installed: Path, cli: str, lock: Session
                     or info['package_version'] != (pending['version'] if head == pending['commit'] else pending['base_version'])):
         raise UpdateError('pending update no longer matches the local source; reconcile it explicitly')
     if not pending:
-        installed_info = package_info(installed)
+        try:
+            installed_info = package_info(installed)
+        except ValueError:
+            # Resource parity may fail on locally edited native/legacy copies.
+            # Preserve those files under the same drift policy as other payload edits.
+            if not payload_matches(source, installed):
+                return {'status': 'deferred_installed_changes', 'changed': False}
+            raise
         if installed_info['package_version'] != info['package_version']:
             raise UpdateError('source and installed copy differ; synchronize the local installation first')
         if not payload_matches(source, installed):

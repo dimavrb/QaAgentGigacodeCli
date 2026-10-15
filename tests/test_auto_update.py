@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 import qa_auto_update as updater
 from package_agent import ROOT_FILES, TREES, SKIP
 from qa_project import CONFIG, CONTEXT, initialize
+from extension_resources import sync_resources
 
 
 def copy_package(source, destination):
@@ -97,6 +98,7 @@ class AutoUpdateTests(unittest.TestCase):
             (self.author / 'gigacode-extension.json').write_text(json.dumps(manifest))
             (self.author / 'VERSION').write_text(self.next_version+'\n')
         (self.author / 'README.md').write_text('Changed package documentation\n')
+        sync_resources(self.author, apply=True)
         self.git(self.author, 'add', '.')
         self.git(self.author, 'commit', '-m', 'fixture update')
         self.git(self.author, 'push', str(self.remote), 'main')
@@ -364,9 +366,16 @@ class AutoUpdateTests(unittest.TestCase):
 
     def test_extra_installed_agent_is_not_silently_left_after_update(self):
         self.publish()
-        (self.installed / '.gigacode/agents/local-agent.md').write_text('Local agent')
-        self.assertEqual('deferred_installed_changes', self.apply()['status'])
-        self.assertEqual(self.base, self.git(self.source, 'rev-parse', 'HEAD'))
+        for relative in ('.gigacode/agents/local-agent.md', 'agents/local-agent.md',
+                         'skills/local-skill/SKILL.md', 'commands/local-command.md'):
+            with self.subTest(relative=relative):
+                target = self.installed / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text('Local resource')
+                self.assertEqual('deferred_installed_changes', self.apply()['status'])
+                self.assertEqual('Local resource', target.read_text())
+                self.assertEqual(self.base, self.git(self.source, 'rev-parse', 'HEAD'))
+                target.unlink()
 
     def test_remote_symlink_is_rejected_before_changing_source(self):
         (self.author / 'scripts/outside.py').symlink_to('/tmp/external.py')

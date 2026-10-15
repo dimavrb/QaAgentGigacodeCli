@@ -11,10 +11,13 @@ import zipfile
 from datetime import date
 from pathlib import Path, PurePosixPath
 
+from extension_resources import RESOURCE_TREES, check_resources, native_layout
+
 ROOT_FILES = ('.gitignore', 'VERSION', 'CHANGELOG.md', 'README.md', 'GIGACODE.md', 'AGENTS.md', 'qa-runtime.json', 'LICENSE',
               'gigacode-extension.json', 'GIGACODE_EXTENSION.md',
               '.gigacode/settings.json', '.gigacode/playwright.config.json')
-TREES = ('.gigacode/agents', '.gigacode/commands', '.gigacode/skills', 'docs', 'examples', 'scripts', 'tests')
+TREES = ('.gigacode/agents', '.gigacode/commands', '.gigacode/skills',
+         *RESOURCE_TREES, 'docs', 'examples', 'scripts', 'tests')
 SKIP = {'__pycache__', '.DS_Store', '.git', '.idea', '.venv', 'node_modules'}
 
 
@@ -55,6 +58,15 @@ def verify_archive(archive: Path) -> dict:
             extension = json.loads(bundle.read('qa-agent/gigacode-extension.json'))
             if extension.get('name') != 'qa-agent' or extension.get('version') != manifest['version']:
                 raise ValueError('Extension version differs from package manifest')
+        if native_layout(manifest['version']):
+            for tree in RESOURCE_TREES:
+                source_prefix, native_prefix = f'.gigacode/{tree}/', f'{tree}/'
+                source = {item['path'][len(source_prefix):]: item['sha256'] for item in manifest['files']
+                          if item['path'].startswith(source_prefix)}
+                native = {item['path'][len(native_prefix):]: item['sha256'] for item in manifest['files']
+                          if item['path'].startswith(native_prefix)}
+                if not native or native != source:
+                    raise ValueError(f'Native extension resources differ from .gigacode sources: {tree}')
         return manifest
 
 
@@ -65,11 +77,16 @@ def build_package(root: Path, output: Path, packaged_on: str) -> Path:
     version = (root / 'VERSION').read_text().strip()
     if not re.fullmatch(r'\d+\.\d+(?:\.\d+)?', version):
         raise ValueError('VERSION must contain a numeric release version')
+    if native_layout(version):
+        check_resources(root)
     if (root / '.gigacode').is_symlink():
         raise ValueError('Cannot package symlink: .gigacode')
     files = [root / name for name in ROOT_FILES]
     for tree in TREES:
         directory = root / tree
+        # Trusted validation can still inspect releases predating native exports.
+        if tree in RESOURCE_TREES and not native_layout(version) and not directory.exists():
+            continue
         if directory.is_symlink() or not directory.is_dir():
             raise ValueError(f'Missing or symlinked package directory: {tree}')
         for path in sorted(directory.rglob('*')):

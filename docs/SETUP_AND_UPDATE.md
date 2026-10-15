@@ -1,9 +1,14 @@
 # Настройка и обновление QA-пакета
 
-Текущий профиль — **GIGACODE CLI, 2.3.11**. Первая установка — [INSTALL.md](INSTALL.md),
+Текущий профиль — **GIGACODE CLI, 2.3.12**. Первая установка — [INSTALL.md](INSTALL.md),
 перенос в приложение — [IMPORT_INTO_APP.md](IMPORT_INTO_APP.md), переход с предыдущей версии —
-[UPGRADE_2.3.11.md](UPGRADE_2.3.11.md). Прежние релизные документы доступны в истории Git; текущая поставка содержит
+[UPGRADE_2.3.12.md](UPGRADE_2.3.12.md). Прежние релизные документы доступны в истории Git; текущая поставка содержит
 инструкции только для GIGACODE и общего CLI-контракта.
+
+В 2.3.12 исправлена раскладка native discovery: установке нужны корневые
+`agents/`, `skills/`, `commands/`. После обновления проверьте их через
+`python3 <package_root>/scripts/extension_resources.py` и новую сессию CLI.
+Поля путей в манифесте не обеспечивают загрузку ресурсов целевой сборкой.
 
 Подключение только к одному проекту через его `.gigacode` описано в
 [IMPORT_INTO_APP.md](IMPORT_INTO_APP.md#подключение-только-в-одном-проекте).
@@ -56,7 +61,7 @@ gigacode
 Для ZIP проверьте checksum и manifest:
 
 ```bash
-python3 scripts/package_agent.py --verify /absolute/path/qa-agent-2.3.11.zip
+python3 scripts/package_agent.py --verify /absolute/path/qa-agent-2.3.12.zip
 ```
 
 Для отката восстановите пакет и согласованные адаптации из предыдущего commit/ZIP.

@@ -25,12 +25,14 @@ class ExtensionProjectTests(unittest.TestCase):
                      'docs/COORDINATOR.md', 'docs/EXTENSION_RUNTIME.md',
                      'scripts/qa_project.py', 'scripts/qa_extension_mcp.py', 'scripts/qa_tasks.py', 'scripts/qa_files.py',
                      'scripts/qa_agent_state.py', 'scripts/qa_project_agents.py',
+                     'scripts/extension_resources.py',
                      'examples/qa-only/APP_CONTEXT.template.md'):
             target = self.package / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)
         for key in ('agents', 'skills', 'commands'):
             shutil.copytree(ROOT / manifest[key], self.package / manifest[key])
+            shutil.copytree(ROOT / key, self.package / key)
         self.project = self.root / 'application with пробелами'
         self.project.mkdir()
 

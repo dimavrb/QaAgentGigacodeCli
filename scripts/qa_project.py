@@ -12,6 +12,7 @@ from pathlib import Path
 
 from qa_files import atomic_text, project_lock, read_bytes
 from qa_agent_state import package_roles, sync_roles
+from extension_resources import check_resources, native_layout
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path('.qa-agent/project.local.json')
@@ -46,12 +47,16 @@ def package_info(root: Path = ROOT) -> dict:
     if (manifest.get('name') != 'qa-agent' or manifest.get('version') != version
             or not re.fullmatch(r'\d+\.\d+\.\d+', version)):
         raise ValueError('extension manifest and VERSION must identify the same QA package version')
-    resources = {'agents': '.gigacode/agents', 'skills': '.gigacode/skills',
-                 'commands': '.gigacode/commands', 'contextFileName': 'GIGACODE_EXTENSION.md'}
+    native = native_layout(version)
+    if native:
+        check_resources(root)
+    resources = {key: key if native else '.gigacode/' + key for key in ('agents', 'skills', 'commands')}
+    resources['contextFileName'] = 'GIGACODE_EXTENSION.md'
     for key, relative in resources.items():
         path = root / relative
         expected_type = path.is_file() if key == 'contextFileName' else path.is_dir()
-        if manifest.get(key) != relative or path.is_symlink() or not expected_type:
+        declared = manifest.get(key) == relative if not native or key == 'contextFileName' else True
+        if not declared or path.is_symlink() or not expected_type:
             raise ValueError(f'invalid extension resource: {key}')
     for relative in ('docs/COORDINATOR.md', 'docs/EXTENSION_RUNTIME.md',
                      'scripts/qa_project.py', 'scripts/qa_extension_mcp.py', 'scripts/qa_tasks.py',
