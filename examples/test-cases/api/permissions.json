@@ -4,19 +4,67 @@
     {
       "scenario_id": "EX-API-004",
       "title": "API заказов — запрошен заказ другого пользователя — доступ запрещён",
-      "requirement_source": "Учебный пример, не требование приложения: GET /orders/{id} для чужого заказа возвращает 403 с code=FORBIDDEN, без полей заказа",
+      "requirement_source": "Учебный вымышленный контракт, не требование приложения: GET /orders/{id} для чужого заказа возвращает 403 с code=FORBIDDEN и не раскрывает данные заказа; для владельца возвращает 200 с id и owner_id. Все запросы требуют Authorization: Bearer <токен пользователя> и Accept: application/json; запросы с JSON-телом также требуют Content-Type: application/json. Все приведённые ответы имеют Content-Type: application/json.",
       "preconditions": [
-        "Покупатели A и B имеют разные тестовые токены",
-        "Заказ ORDER-B принадлежит B; A не имеет административных прав; факт существования заказа подтверждён токеном B"
+        "Используется разрешённое тестовое окружение; к относительным путям запросов добавить его согласованный API base URL.",
+        "В вымышленном стенде через учебную панель «Тестовые пользователи → Выдать токен» получить отдельные действующие токены обычных покупателей A и B. Подставить их вместо {{TOKEN_A}} и {{TOKEN_B}} соответственно; реальные значения не сохранять в каталоге.",
+        "Покупатели A и B не имеют административных прав; заказ ORDER-B принадлежит user-b. Факт существования и принадлежности заказа подтверждён GET /orders/ORDER-B с токеном B: HTTP 200, id=ORDER-B, owner_id=user-b."
       ],
       "steps": [
         {
-          "name": "Отправить GET /orders/ORDER-B с тестовым токеном пользователя A",
-          "expected_result": "Получен HTTP 403; code равен FORBIDDEN; ответ не содержит sku, quantity, адреса или других данных заказа"
+          "name": "Запросить чужой заказ от имени покупателя A",
+          "expected_result": "Получен HTTP 403 и Content-Type application/json. code=FORBIDDEN. Ответ не раскрывает данные заказа: его id, owner_id, sku, quantity или адреса. Дополнительные служебные поля ошибки допустимы.",
+          "request": {
+            "method": "GET",
+            "path": "/orders/ORDER-B",
+            "headers": {
+              "Authorization": "Bearer {{TOKEN_A}}",
+              "Accept": "application/json"
+            },
+            "body": {
+              "kind": "none"
+            }
+          },
+          "response": {
+            "status": 403,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "example": {
+              "scope": "fragment",
+              "json": {
+                "code": "FORBIDDEN"
+              }
+            }
+          }
         },
         {
-          "name": "Отправить GET /orders/ORDER-B с тестовым токеном пользователя B",
-          "expected_result": "Получен HTTP 200; возвращён заказ с id=ORDER-B владельца B. Эта проверка подтверждает доступность и идентичность заказа; неизменность остальных полей не проверялась"
+          "name": "Получить тот же заказ от имени владельца B",
+          "expected_result": "Получен HTTP 200 и Content-Type application/json. id=ORDER-B, owner_id=user-b: заказ доступен владельцу. Дополнительные поля допустимы; неизменность остальных полей этим шагом не подтверждается.",
+          "request": {
+            "method": "GET",
+            "path": "/orders/ORDER-B",
+            "headers": {
+              "Authorization": "Bearer {{TOKEN_B}}",
+              "Accept": "application/json"
+            },
+            "body": {
+              "kind": "none"
+            }
+          },
+          "response": {
+            "status": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "example": {
+              "scope": "fragment",
+              "json": {
+                "id": "ORDER-B",
+                "owner_id": "user-b"
+              }
+            }
+          }
         }
       ]
     }

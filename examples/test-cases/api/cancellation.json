@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "test_cases": [
+    {
+      "scenario_id": "EX-API-006",
+      "title": "API заказов — другой пользователь запрашивает отмену — доступ отклонён, состояние сохранено",
+      "requirement_source": "Учебный вымышленный контракт, не требование приложения: GET /api/orders/{id} от имени владельца возвращает 200 и JSON с id, owner_id и status. POST /api/orders/{id}/cancel не имеет тела запроса; пользователь вправе отменять только свои заказы. Попытка отменить чужой заказ возвращает 403 с error.code=ORDER_ACCESS_DENIED и не меняет владельца или статус заказа. Обязательные заголовки обоих запросов: Authorization: Bearer <токен пользователя> и Accept: application/json; Content-Type для запросов без тела не требуется. Все приведённые ответы имеют Content-Type: application/json.",
+      "preconditions": [
+        "Используется разрешённое тестовое окружение; к относительным путям запросов добавить его согласованный API base URL.",
+        "В вымышленном стенде через учебную панель «Тестовые пользователи → Выдать токен» получить отдельные действующие токены обычных покупателей A и B. Подставить их вместо {{TOKEN_A}} и {{TOKEN_B}} соответственно; реальные значения не сохранять в каталоге.",
+        "Покупатели имеют ID user-a и user-b и не обладают административными правами; у user-b создан заказ ORD-102 в статусе NEW.",
+        "Параллельные изменения заказа ORD-102 исключены до завершения кейса."
+      ],
+      "steps": [
+        {
+          "name": "Получить исходное состояние заказа от имени владельца B",
+          "expected_result": "Получен HTTP 200 и Content-Type application/json. id=ORD-102, owner_id=user-b, status=NEW. Дополнительные поля допустимы.",
+          "request": {
+            "method": "GET",
+            "path": "/api/orders/ORD-102",
+            "headers": {
+              "Authorization": "Bearer {{TOKEN_B}}",
+              "Accept": "application/json"
+            },
+            "body": {
+              "kind": "none"
+            }
+          },
+          "response": {
+            "status": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "example": {
+              "scope": "fragment",
+              "json": {
+                "id": "ORD-102",
+                "owner_id": "user-b",
+                "status": "NEW"
+              }
+            }
+          }
+        },
+        {
+          "name": "Отправить запрос отмены чужого заказа от имени покупателя A",
+          "expected_result": "Получен HTTP 403 и Content-Type application/json. error.code=ORDER_ACCESS_DENIED. Дополнительные служебные поля ошибки допустимы.",
+          "request": {
+            "method": "POST",
+            "path": "/api/orders/ORD-102/cancel",
+            "headers": {
+              "Authorization": "Bearer {{TOKEN_A}}",
+              "Accept": "application/json"
+            },
+            "body": {
+              "kind": "none"
+            }
+          },
+          "response": {
+            "status": 403,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "example": {
+              "scope": "fragment",
+              "json": {
+                "error": {
+                  "code": "ORDER_ACCESS_DENIED"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Повторно получить состояние заказа от имени владельца B",
+          "expected_result": "Получен HTTP 200 и Content-Type application/json. id=ORD-102, owner_id=user-b и status=NEW — значения совпадают с исходным состоянием до запроса отмены. Дополнительные поля допустимы.",
+          "request": {
+            "method": "GET",
+            "path": "/api/orders/ORD-102",
+            "headers": {
+              "Authorization": "Bearer {{TOKEN_B}}",
+              "Accept": "application/json"
+            },
+            "body": {
+              "kind": "none"
+            }
+          },
+          "response": {
+            "status": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "example": {
+              "scope": "fragment",
+              "json": {
+                "id": "ORD-102",
+                "owner_id": "user-b",
+                "status": "NEW"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

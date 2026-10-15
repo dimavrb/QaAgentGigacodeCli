@@ -43,8 +43,16 @@ def main():
                 if state['status'] in ('accepted', 'blocked', 'cancelled') or time.monotonic() >= deadline:
                     break
                 time.sleep(.1)
+        presentation = None
+        if state.get('result_request_id'):
+            registry = task_exchange.read_state(state['plan']['author_plan']['task_state'])
+            presentation = registry['requests'][state['result_request_id']].get('presentation')
+            if presentation is not None:
+                from qa_tasks import presentation_reference
+                presentation = presentation_reference(presentation)
         print(json.dumps(dict(task_id=state['task_id'], status=state['status'], round=state['round'],
             reason=state.get('reason'), result_request_id=state.get('result_request_id'),
+            presentation=presentation,
             review_request_ids=state.get('review_request_ids', []), active_seconds=review_cycle.active_seconds(state),
             metrics=execution_metrics.aggregate([review_cycle.supervisor.read(c['path']) for c in state['children'] if Path(c['path']).exists()]),
             discussions={key: dict(status=log['status'], rounds=len(log['rounds']))

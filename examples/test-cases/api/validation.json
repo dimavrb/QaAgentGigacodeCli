@@ -4,19 +4,74 @@
     {
       "scenario_id": "EX-API-002",
       "title": "API заказов — отсутствует обязательное поле quantity — запрос отклонён",
-      "requirement_source": "Учебный пример, не требование приложения: quantity обязательно; при его отсутствии POST /orders возвращает 400 с code=VALIDATION_ERROR и fields.quantity; заказ не создаётся",
+      "requirement_source": "Учебный вымышленный контракт, не требование приложения: quantity обязательно; при его отсутствии POST /orders возвращает 400 с code=VALIDATION_ERROR и fields.quantity=REQUIRED; заказ не создаётся. GET /orders возвращает 200 и items — полный список заказов текущего покупателя без пагинации. Все запросы требуют Authorization: Bearer <токен пользователя> и Accept: application/json; запросы с JSON-телом также требуют Content-Type: application/json. Все приведённые ответы имеют Content-Type: application/json.",
       "preconditions": [
-        "Тестовый покупатель авторизован; SKU-EXAMPLE существует",
-        "Список ID заказов пользователя зафиксирован; параллельное создание заказов исключено"
+        "Используется разрешённое тестовое окружение; к относительным путям запросов добавить его согласованный API base URL.",
+        "В вымышленном стенде открыть учебную панель «Тестовые пользователи», выбрать покупателя и нажать «Выдать токен». Полученное значение подставить вместо {{TOKEN_BUYER}} во всех запросах; реальный токен не сохранять в каталоге.",
+        "SKU-EXAMPLE существует; у тестового покупателя нет заказов, что подтверждено GET /orders с его токеном (items=[]).",
+        "Параллельное создание заказов этим покупателем исключено."
       ],
       "steps": [
         {
-          "name": "Отправить POST /orders с JSON {\"sku\":\"SKU-EXAMPLE\"} и тестовым токеном покупателя",
-          "expected_result": "Получен HTTP 400; code равен VALIDATION_ERROR; fields.quantity указывает отсутствие обязательного поля"
+          "name": "Отправить запрос создания заказа без quantity",
+          "expected_result": "Получен HTTP 400 и Content-Type application/json. code=VALIDATION_ERROR, fields.quantity=REQUIRED. Дополнительные служебные поля ошибки допустимы.",
+          "request": {
+            "method": "POST",
+            "path": "/orders",
+            "headers": {
+              "Authorization": "Bearer {{TOKEN_BUYER}}",
+              "Accept": "application/json",
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "kind": "json",
+              "value": {
+                "sku": "SKU-EXAMPLE"
+              }
+            }
+          },
+          "response": {
+            "status": 400,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "example": {
+              "scope": "fragment",
+              "json": {
+                "code": "VALIDATION_ERROR",
+                "fields": {
+                  "quantity": "REQUIRED"
+                }
+              }
+            }
+          }
         },
         {
-          "name": "Получить список ID заказов тестового покупателя",
-          "expected_result": "Список совпадает с исходным; новый заказ не появился"
+          "name": "Получить список заказов после отклонённого запроса",
+          "expected_result": "Получен HTTP 200 и Content-Type application/json. items — пустой массив, как до отправки: новый заказ не появился. Дополнительные поля ответа допустимы.",
+          "request": {
+            "method": "GET",
+            "path": "/orders",
+            "headers": {
+              "Authorization": "Bearer {{TOKEN_BUYER}}",
+              "Accept": "application/json"
+            },
+            "body": {
+              "kind": "none"
+            }
+          },
+          "response": {
+            "status": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "example": {
+              "scope": "fragment",
+              "json": {
+                "items": []
+              }
+            }
+          }
         }
       ]
     }

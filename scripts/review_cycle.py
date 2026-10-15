@@ -197,6 +197,16 @@ def review_plan(state, slot, author_request, base, discussion=None):
         assignment['goal'] += '\nРазбери только назначенные расхождения по docs/REVIEW_DISCUSSION.md. Сохрани discussion_checks; чужой verdict не является первичным доказательством.'
     source = state['plan']['author_plan']
     instructions = ['docs/CONTENT_REVIEW.md', '.gigacode/skills/qa-check-quality/SKILL.md']
+    if message['payload'].get('test_cases_artifact'):
+        instructions += ['docs/TEST_CASE_REVIEW.md','docs/TEST_CASE_STYLE.md',
+                         'docs/TEST_CASE_SELECTION.md','.gigacode/skills/qa-test-cases/SKILL.md']
+        if author['assignment'].get('test_type') is not None:
+            assignment['test_type'] = author['assignment']['test_type']
+        instructions += [p for p in source['steps'][0].get('instruction_paths', [])
+                         if p.startswith('examples/test-cases/')]
+    if author['assignment'].get('plan_partition'):
+        assignment['plan_partition'] = copy.deepcopy(author['assignment']['plan_partition'])
+        instructions.append('docs/TEST_PLAN_PARTITION.md')
     if discussion:
         instructions.append('docs/REVIEW_DISCUSSION.md')
     if message['payload'].get('combination_coverage'):

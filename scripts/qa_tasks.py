@@ -105,8 +105,20 @@ def references(rid, row):
     return {'request_id': rid, 'inputs': strings(assignment.get('inputs', [])),
             'depends_on': strings(assignment.get('depends_on', [])),
             'scenario_ids': strings(assignment.get('scenario_ids', [])), **hashes,
+            **({'presentation': presentation_reference(row['presentation'])} if 'presentation' in row else {}),
             **{key: text(assignment[key]) for key in ('investigation_state', 'stub_assignment')
                if key in assignment}}
+
+
+def presentation_reference(value):
+    if not isinstance(value, dict) or value.get('status') not in ('ready', 'needs_attention'):
+        raise ValueError('invalid HTML presentation reference')
+    if value['status'] == 'needs_attention':
+        return {'status': 'needs_attention', 'error': text(value['error'])}
+    if not re.fullmatch(r'[a-f0-9]{64}', value.get('sha256', '')):
+        raise ValueError('invalid HTML presentation hash')
+    return {'status': 'ready', 'path': text(value['path']), 'sha256': value['sha256'],
+            'plan_revision': text(value['plan_revision'])}
 
 
 def snapshot_summary(state, project, relative, digest):

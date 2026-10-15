@@ -5,11 +5,58 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from html.parser import HTMLParser
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from build_manual_allure import build_bundle, identity, make_result
+from build_manual_allure import build_bundle, identity, make_result, read_cases
+
+
+class PreformattedText(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.blocks = []
+        self.current = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'pre':
+            self.current = []
+
+    def handle_data(self, data):
+        if self.current is not None:
+            self.current.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == 'pre' and self.current is not None:
+            self.blocks.append(''.join(self.current))
+            self.current = None
+
+
+class StepTableText(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.rows = []
+        self.row = None
+        self.cell = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'tr':
+            self.row = []
+        elif tag == 'td':
+            self.cell = []
+
+    def handle_data(self, data):
+        if self.cell is not None:
+            self.cell.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == 'td' and self.cell is not None:
+            self.row.append(''.join(self.cell))
+            self.cell = None
+        elif tag == 'tr' and self.row:
+            self.rows.append(self.row)
+            self.row = None
 
 
 class ManualAllureTests(unittest.TestCase):
@@ -49,6 +96,8 @@ class ManualAllureTests(unittest.TestCase):
                 self.assertEqual("unknown", step["status"])
                 self.assertEqual("Ожидаемый результат: " + original["expected_result"], step["steps"][0]["name"])
                 self.assertEqual("unknown", step["steps"][0]["status"])
+                self.assertEqual(1, len(step['steps']))
+            self.assertNotIn('<table>', result['descriptionHtml'])
 
     def test_identity_survives_rename_edit_and_file_move_but_uuid_is_new(self):
         first = self.build()
@@ -218,6 +267,248 @@ class ManualAllureTests(unittest.TestCase):
         completed = subprocess.run(bad, capture_output=True, text=True)
         self.assertEqual(2, completed.returncode)
         self.assertIn("outside", completed.stdout)
+
+    def test_api_examples_preserve_requests_and_responses_in_bundle(self):
+        source = ROOT / 'examples/test-cases/api'
+        cases, _ = read_cases(source)
+        manifest = build_bundle(source, self.root / 'api-results', 'synthetic.api')
+        self.assertEqual(len(cases), manifest['case_count'])
+        by_id = {case['scenario_id']: case for case in cases}
+        for record in manifest['cases']:
+            case = by_id[record['scenario_id']]
+            result = json.loads((self.root / 'api-results' / record['file']).read_text())
+            self.assertEqual(case['title'], result['name'])
+            self.assertEqual(len(case['steps']), len(result['steps']))
+            table = StepTableText()
+            table.feed(result['descriptionHtml'])
+            self.assertEqual(len(case['steps']), len(table.rows))
+            for number, (original, step, row) in enumerate(zip(case['steps'], result['steps'], table.rows), start=1):
+                self.assertEqual(original['name'], step['name'])
+                self.assertEqual(f"{number}. {original['name']}", row[0])
+                self.assertEqual(original['expected_result'], row[1])
+                self.assertEqual('Ожидаемый результат: ' + original['expected_result'], step['steps'][0]['name'])
+                if 'request' not in original and 'response' not in original:
+                    self.assertEqual(original.get('test_data', '—'), row[2])
+                    continue
+                self.assertEqual(2, len(step['steps']))
+                native = step['steps'][1]['name']
+                self.assertTrue(native.startswith('Тест-дата: '))
+                self.assertEqual('unknown', step['steps'][1]['status'])
+                if 'request' in original:
+                    request = original['request']
+                    expected = [request['method'] + ' ' + request['path'],
+                                json.dumps(request['headers'], ensure_ascii=False, indent=2)]
+                    if request['body']['kind'] == 'none':
+                        expected.append('Тело запроса: отсутствует')
+                    elif request['body']['kind'] == 'json':
+                        expected.append(json.dumps(request['body']['value'], ensure_ascii=False, indent=2))
+                    for value in expected:
+                        self.assertIn(value, row[2])
+                        self.assertIn(value, native)
+                if 'response' in original:
+                    response = original['response']
+                    expected = [f'HTTP {response["status"]}']
+                    if 'headers' in response:
+                        expected.append(json.dumps(response['headers'], ensure_ascii=False, indent=2))
+                    if 'example' in response:
+                        expected.append(json.dumps(response['example']['json'], ensure_ascii=False, indent=2))
+                        expected.append('Фрагмент JSON-ответа' if response['example']['scope'] == 'fragment'
+                                        else 'Полный пример JSON-ответа')
+                    for value in expected:
+                        self.assertIn(value, row[2])
+                        self.assertIn(value, native)
+                self.assertEqual('unknown', step['status'])
+            self.assertNotIn('<section><h3>API:', result['descriptionHtml'])
+            self.assertNotIn('start', result)
+            self.assertNotIn('stop', result)
+
+    def test_api_edits_change_catalog_hash_without_changing_identity(self):
+        self.catalog = json.loads((ROOT / 'examples/test-cases/api/cancellation.json').read_text())
+        self.write_catalog()
+        before = self.build()
+        self.catalog['test_cases'][0]['steps'][1]['request']['headers']['Authorization'] = 'Bearer {{OTHER_TOKEN}}'
+        self.write_catalog()
+        request_edit = self.build('request-edit')
+        self.catalog['test_cases'][0]['steps'][1]['response']['example']['json']['error']['code'] = 'OTHER_CODE'
+        self.write_catalog()
+        response_edit = self.build('response-edit')
+        self.assertEqual(3, len({row['catalog_sha256'] for row in [before, request_edit, response_edit]}))
+        self.assertEqual(1, len({row['cases'][0]['test_case_id'] for row in [before, request_edit, response_edit]}))
+        result = json.loads((self.root / 'response-edit' / response_edit['cases'][0]['file']).read_text())
+        table = StepTableText()
+        table.feed(result['descriptionHtml'])
+        for data in (table.rows[1][2], result['steps'][1]['steps'][1]['name']):
+            self.assertIn('{{OTHER_TOKEN}}', data)
+            self.assertIn('OTHER_CODE', data)
+            self.assertNotIn('ORDER_ACCESS_DENIED', data)
+
+    def test_api_unknown_fields_and_invalid_types_fail_before_writing(self):
+        source = json.loads((ROOT / 'examples/test-cases/api/cancellation.json').read_text())
+        for mutate in [lambda step: step['request'].update(ignored='metadata'),
+                       lambda step: step['response'].update(status=True),
+                       lambda step: step['response']['example'].update(scope='unspecified')]:
+            with self.subTest(mutate=mutate):
+                self.catalog = copy.deepcopy(source)
+                mutate(self.catalog['test_cases'][0]['steps'][1])
+                self.write_catalog()
+                with self.assertRaises(ValueError):
+                    self.build()
+                self.assertFalse((self.root / 'results').exists())
+
+    def test_api_data_is_escaped_in_description_without_changing_json_value(self):
+        self.catalog = json.loads((ROOT / 'examples/test-cases/api/create.json').read_text())
+        value = {'note': '<script>bad()</script>&"', 'line': 'first\nsecond'}
+        self.catalog['test_cases'][0]['steps'][0]['request']['body']['value'] = value
+        self.catalog['test_cases'][0]['steps'][0]['response']['example']['json'] = value
+        self.write_catalog()
+        manifest = self.build()
+        result = json.loads((self.root / 'results' / manifest['cases'][0]['file']).read_text())
+        self.assertNotIn('<script>', result['descriptionHtml'])
+        self.assertIn('&lt;script&gt;', result['descriptionHtml'])
+        parser = PreformattedText()
+        parser.feed(result['descriptionHtml'])
+        self.assertEqual(2, parser.blocks.count(json.dumps(value, ensure_ascii=False, indent=2)))
+
+    def test_kafka_example_preserves_three_columns_and_step_data(self):
+        source = ROOT / 'examples/test-cases/kafka'
+        cases, _ = read_cases(source)
+        manifest = build_bundle(source, self.root / 'kafka-results', 'synthetic.kafka')
+        self.assertEqual(1, manifest['case_count'])
+        self.assertFalse(manifest['execution_performed'])
+        result = json.loads((self.root / 'kafka-results' / manifest['cases'][0]['file']).read_text())
+        parser = StepTableText()
+        parser.feed(result['descriptionHtml'])
+        originals = cases[0]['steps']
+        self.assertEqual(len(originals), len(parser.rows))
+        for number, (original, row, published) in enumerate(zip(originals, parser.rows, result['steps']), start=1):
+            self.assertEqual([f"{number}. {original['name']}", original['expected_result'], original['test_data']], row)
+            self.assertEqual(original['name'], published['name'])
+            self.assertEqual('Ожидаемый результат: ' + original['expected_result'], published['steps'][0]['name'])
+            self.assertEqual('Тест-дата: ' + original['test_data'], published['steps'][1]['name'])
+            self.assertEqual('unknown', published['steps'][1]['status'])
+            self.assertEqual('pending', published['steps'][1]['stage'])
+        self.assertNotIn('start', result)
+        self.assertNotIn('stop', result)
+
+    def test_ui_examples_preserve_three_columns_and_optional_step_data(self):
+        source = ROOT / 'examples/test-cases/ui'
+        cases, _ = read_cases(source)
+        manifest = build_bundle(source, self.root / 'ui-results', 'synthetic.ui')
+        self.assertEqual(5, manifest['case_count'])
+        self.assertFalse(manifest['execution_performed'])
+        by_id = {case['scenario_id']: case for case in cases}
+        missing_data_seen = False
+        for record in manifest['cases']:
+            case = by_id[record['scenario_id']]
+            result = json.loads((self.root / 'ui-results' / record['file']).read_text())
+            table = StepTableText()
+            table.feed(result['descriptionHtml'])
+            self.assertEqual(len(case['steps']), len(table.rows))
+            self.assertEqual(len(case['steps']), len(result['steps']))
+            for number, (original, row, published) in enumerate(zip(case['steps'], table.rows, result['steps']), start=1):
+                self.assertEqual([f"{number}. {original['name']}", original['expected_result'],
+                                  original.get('test_data', '—')], row)
+                self.assertEqual('Ожидаемый результат: ' + original['expected_result'], published['steps'][0]['name'])
+                self.assertEqual('unknown', published['status'])
+                if 'test_data' in original:
+                    self.assertEqual(2, len(published['steps']))
+                    self.assertEqual('Тест-дата: ' + original['test_data'], published['steps'][1]['name'])
+                    self.assertEqual('unknown', published['steps'][1]['status'])
+                    self.assertEqual('pending', published['steps'][1]['stage'])
+                else:
+                    missing_data_seen = True
+                    self.assertEqual(1, len(published['steps']))
+            self.assertNotIn('start', result)
+            self.assertNotIn('stop', result)
+        self.assertTrue(missing_data_seen)
+
+    def test_test_data_is_optional_per_step_and_can_coexist_with_http_details(self):
+        self.catalog = json.loads((ROOT / 'examples/test-cases/api/create.json').read_text())
+        self.catalog['test_cases'][0]['steps'][0]['test_data'] = 'Фикстура: данные этого прогона'
+        self.write_catalog()
+        manifest = self.build()
+        result = json.loads((self.root / 'results' / manifest['cases'][0]['file']).read_text())
+        parser = StepTableText()
+        parser.feed(result['descriptionHtml'])
+        for original, row, step in zip(self.catalog['test_cases'][0]['steps'], parser.rows, result['steps']):
+            if 'test_data' in original:
+                self.assertIn(original['test_data'], row[2])
+                self.assertIn(original['test_data'], step['steps'][1]['name'])
+            has_data = any(field in original for field in ('request', 'response', 'test_data'))
+            self.assertEqual(2 if has_data else 1, len(step['steps']))
+        self.assertNotIn('API: шаг 1', result['descriptionHtml'])
+        api = PreformattedText()
+        api.feed(result['descriptionHtml'])
+        body = self.catalog['test_cases'][0]['steps'][0]['request']['body']['value']
+        self.assertIn(json.dumps(body, ensure_ascii=False, indent=2), api.blocks)
+
+    def test_partial_http_details_generate_only_the_available_test_data(self):
+        source = json.loads((ROOT / 'examples/test-cases/api/cancellation.json').read_text())['test_cases'][0]
+        for absent in ('request', 'response'):
+            with self.subTest(absent=absent):
+                case = copy.deepcopy(source)
+                del case['steps'][0][absent]
+                result = make_result(case, 'synthetic.api')
+                table = StepTableText()
+                table.feed(result['descriptionHtml'])
+                for data in (table.rows[0][2], result['steps'][0]['steps'][1]['name']):
+                    if absent == 'request':
+                        self.assertIn('HTTP 200', data)
+                        self.assertNotIn('GET /api/orders/', data)
+                    else:
+                        self.assertIn('GET /api/orders/ORD-102', data)
+                        self.assertNotIn('HTTP 200', data)
+
+    def test_api_control_characters_are_unambiguous_in_table_and_native_data(self):
+        self.catalog = json.loads((ROOT / 'examples/test-cases/api/create.json').read_text())
+        step = self.catalog['test_cases'][0]['steps'][0]
+        value = 'first\x00\nsecond'
+        step['request']['body'] = {'kind': 'text', 'value': value}
+        step['request']['headers']['X-Example'] = 'a\nInjected: b'
+        self.write_catalog()
+        manifest = self.build()
+        result = json.loads((self.root / 'results' / manifest['cases'][0]['file']).read_text())
+        table = StepTableText()
+        table.feed(result['descriptionHtml'])
+        for data in (table.rows[0][2], result['steps'][0]['steps'][1]['name']):
+            self.assertIn(json.dumps(value, ensure_ascii=False), data)
+            self.assertIn(json.dumps(step['request']['headers'], ensure_ascii=False, indent=2), data)
+            self.assertNotIn('a\nInjected: b', data)
+            self.assertNotIn('\x00', data)
+            self.assertIn('не часть отправляемого тела', data)
+
+    def test_test_data_is_escaped_and_preserved_without_interpreting_it(self):
+        data = 'SQL:\nSELECT \'<script>bad()</script>&"\';\nJSON: {"id":"<run_id>"}\n\t{{TOKEN}}'
+        self.catalog['test_cases'][0]['steps'][0]['test_data'] = data
+        self.write_catalog()
+        manifest = self.build()
+        result = json.loads((self.root / 'results' / manifest['cases'][0]['file']).read_text())
+        self.assertNotIn('<script>', result['descriptionHtml'])
+        parser = StepTableText()
+        parser.feed(result['descriptionHtml'])
+        self.assertEqual(data, parser.rows[0][2])
+        self.assertEqual('Тест-дата: ' + data, result['steps'][0]['steps'][1]['name'])
+
+    def test_test_data_edits_change_hash_without_changing_case_identity(self):
+        first = self.build()
+        self.catalog['test_cases'][0]['steps'][0]['test_data'] = 'Key: order-<run_id>'
+        self.write_catalog()
+        added = self.build('added-data')
+        self.catalog['test_cases'][0]['steps'][0]['test_data'] += '\nТело: {"quantity":1}'
+        self.write_catalog()
+        edited = self.build('edited-data')
+        manifests = (first, added, edited)
+        self.assertEqual(3, len({item['catalog_sha256'] for item in manifests}))
+        self.assertEqual(1, len({item['cases'][0]['test_case_id'] for item in manifests}))
+
+    def test_invalid_test_data_is_rejected_before_any_results_are_written(self):
+        for value in ('', None, {'payload': {}}, '\ud800', '\x00'):
+            with self.subTest(value=value):
+                self.catalog['test_cases'][0]['steps'][0]['test_data'] = value
+                self.source.write_text(json.dumps(self.catalog, ensure_ascii=True), encoding='utf-8')
+                with self.assertRaisesRegex(ValueError, 'test_data'):
+                    self.build()
+                self.assertFalse((self.root / 'results').exists())
 
 
 if __name__ == "__main__":

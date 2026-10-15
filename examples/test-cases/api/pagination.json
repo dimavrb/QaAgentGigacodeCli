@@ -4,15 +4,48 @@
     {
       "scenario_id": "EX-API-005",
       "title": "API списка заказов — запрошена вторая страница — возвращён нужный срез",
-      "requirement_source": "Учебный пример, не требование приложения: GET /orders?page=2&pageSize=2&sort=id:asc возвращает total=5 и items=[ORDER-03,ORDER-04] для набора ORDER-01…ORDER-05",
+      "requirement_source": "Учебный вымышленный контракт, не требование приложения: GET /orders?page=2&pageSize=2&sort=id:asc возвращает 200, total=5 и items с объектами id=ORDER-03 и id=ORDER-04 в этом порядке для набора ORDER-01…ORDER-05. Дополнительные поля объектов допустимы. Все запросы требуют Authorization: Bearer <токен пользователя> и Accept: application/json; запросы с JSON-телом также требуют Content-Type: application/json. Все приведённые ответы имеют Content-Type: application/json.",
       "preconditions": [
-        "Тестовый пользователь имеет ровно пять заказов ORDER-01…ORDER-05",
-        "Состав набора и сортировка стабильны; параллельные изменения исключены"
+        "Используется разрешённое тестовое окружение; к относительным путям запросов добавить его согласованный API base URL.",
+        "В вымышленном стенде открыть учебную панель «Тестовые пользователи», выбрать покупателя и нажать «Выдать токен». Полученное значение подставить вместо {{TOKEN_BUYER}} во всех запросах; реальный токен не сохранять в каталоге.",
+        "Тестовый покупатель имеет ровно пять заказов с ID ORDER-01, ORDER-02, ORDER-03, ORDER-04 и ORDER-05.",
+        "Состав набора и сортировка стабильны; параллельные изменения исключены."
       ],
       "steps": [
         {
-          "name": "Отправить GET /orders?page=2&pageSize=2&sort=id:asc с тестовым токеном",
-          "expected_result": "Получен HTTP 200; total равен 5; items содержит ровно ORDER-03 и ORDER-04 в этом порядке; ORDER-01, ORDER-02 и ORDER-05 отсутствуют"
+          "name": "Получить вторую страницу заказов с сортировкой по id",
+          "expected_result": "Получен HTTP 200 и Content-Type application/json. total — число 5; items содержит ровно два объекта, с id ORDER-03 и ORDER-04 в этом порядке. ORDER-01, ORDER-02 и ORDER-05 в items отсутствуют. Дополнительные поля ответа и объектов допустимы.",
+          "request": {
+            "method": "GET",
+            "path": "/orders?page=2&pageSize=2&sort=id:asc",
+            "headers": {
+              "Authorization": "Bearer {{TOKEN_BUYER}}",
+              "Accept": "application/json"
+            },
+            "body": {
+              "kind": "none"
+            }
+          },
+          "response": {
+            "status": 200,
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "example": {
+              "scope": "fragment",
+              "json": {
+                "total": 5,
+                "items": [
+                  {
+                    "id": "ORDER-03"
+                  },
+                  {
+                    "id": "ORDER-04"
+                  }
+                ]
+              }
+            }
+          }
         }
       ]
     }

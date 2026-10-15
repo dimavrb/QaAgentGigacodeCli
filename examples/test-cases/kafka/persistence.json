@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "test_cases": [
+    {
+      "scenario_id": "EX-KAFKA-001",
+      "title": "Сообщение о заказе — опубликовано в Kafka — тело и метаданные сохранены в БД",
+      "requirement_source": "SC-KAFKA-PERSIST-01 — учебный вымышленный контракт, не требование приложения: сервис читает synth.orders.created.v1 в cluster synth-kafka и сохраняет JSON-тело, key и correlation_id в таблицу incoming_order_events. Для входа обязательны строковые headers correlation_id, schema_version=1 и content-type=application/json; key и тело кодируются UTF-8. Тело содержит непустые event_id, order_id, sku и целочисленный quantity >= 1. event_id уникален в хранилище. Новая запись появляется не позднее 5000 мс после подтверждения публикации брокером; поля event_id, message_key и correlation_id соответствуют входу, payload структурно равен всему отправленному JSON. Порядок ключей объекта не учитывается, порядок элементов массива и типы значений сохраняются.",
+      "preconditions": [
+        "Используется подготовленный изолированный учебный стенд: cluster synth-kafka, topic synth.orders.created.v1 и БД сервиса с таблицей incoming_order_events. Потребитель запущен, подключён к этому topic и имеет право записи в эту БД.",
+        "Учебная Kafka-панель позволяет задать topic, key, headers и JSON-тело, выполнить публикацию и сохранить подтверждение брокера с partition, offset и временем. SQL-клиент подключён к той же БД; у тестировщика есть право SELECT по нужной таблице.",
+        "Создать новый UUID для каждого прогона и подставить его вместо <run_id> во всех данных, SQL и ожиданиях. Сохранить фактически использованные значения в доказательствах прогона; не повторять отправку автоматически при задержке записи.",
+        "Фикстура учебного стенда обеспечивает изоляцию данных прогона и последующую очистку только этих записей; ручной тест не меняет схему БД и чужие данные."
+      ],
+      "steps": [
+        {
+          "name": "Выполнить запрос к БД по event_id тестового сообщения",
+          "expected_result": "Запрос выполнен без ошибки и вернул 0 строк: сообщение этого прогона ещё не сохранено. При наличии старой записи подготовить новый run_id и снова подтвердить отсутствие; не продолжать с найденной записью.",
+          "test_data": "SQL:\nSELECT event_id, message_key, correlation_id, payload\nFROM incoming_order_events\nWHERE event_id = 'event-<run_id>';"
+        },
+        {
+          "name": "Опубликовать сообщение в topic synth.orders.created.v1",
+          "expected_result": "Получено подтверждение публикации от брокера. Сохранены partition, offset и момент подтверждения t_publish; это подтверждает только публикацию входа, а не обработку или запись в БД.",
+          "test_data": "Cluster: synth-kafka\nTopic: synth.orders.created.v1\nKey: order-<run_id>\nHeaders (строковые значения):\n{\n  \"correlation_id\": \"<run_id>\",\n  \"schema_version\": \"1\",\n  \"content-type\": \"application/json\"\n}\nТело сообщения (JSON, UTF-8):\n{\n  \"event_id\": \"event-<run_id>\",\n  \"order_id\": \"order-<run_id>\",\n  \"sku\": \"SKU-SYNTH-001\",\n  \"quantity\": 1\n}"
+        },
+        {
+          "name": "Повторять запрос к БД до появления записи в пределах лимита",
+          "expected_result": "Не позднее t_publish + 5000 мс запрос вернул ровно одну запись с event_id=event-<run_id>. Нулевая выдача после дедлайна не подтверждает сохранение; ошибка SQL или недоступность БД не считается успешной проверкой.",
+          "test_data": "SQL:\nSELECT event_id, message_key, correlation_id, payload\nFROM incoming_order_events\nWHERE event_id = 'event-<run_id>';\nЛимит ожидания: 5000 мс после подтверждения публикации. Повторять только чтение до появления строки или дедлайна; входное сообщение повторно не публиковать."
+        },
+        {
+          "name": "Сравнить поля найденной записи и payload с опубликованным сообщением",
+          "expected_result": "event_id=event-<run_id>, message_key=order-<run_id>, correlation_id=<run_id>. payload структурно равен всему отправленному JSON: event_id и order_id совпадают с входом, sku=SKU-SYNTH-001, quantity — число 1. Поля не потеряны и не добавлены, значения и типы не изменены. Порядок ключей JSON-объекта не учитывается; дополнительные служебные колонки БД вне выбранных полей не проверяются.",
+          "test_data": "Ожидаемая запись выбранных колонок БД (JSON-представление для сравнения, не HTTP-ответ):\n{\n  \"event_id\": \"event-<run_id>\",\n  \"message_key\": \"order-<run_id>\",\n  \"correlation_id\": \"<run_id>\",\n  \"payload\": {\n    \"event_id\": \"event-<run_id>\",\n    \"order_id\": \"order-<run_id>\",\n    \"sku\": \"SKU-SYNTH-001\",\n    \"quantity\": 1\n  }\n}"
+        }
+      ]
+    }
+  ]
+}

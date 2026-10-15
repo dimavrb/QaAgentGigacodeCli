@@ -8,17 +8,54 @@ import json
 from pathlib import Path
 from typing import Any
 
+from api_case_details import validate_api_details
+
+MAX_TEST_DATA_CHARACTERS = 1_000_000
+
+
+def read_json(text: str) -> Any:
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict:
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key: {key}")
+            result[key] = value
+        return result
+
+    def invalid_constant(value: str) -> Any:
+        raise ValueError(f"invalid JSON constant: {value}")
+
+    return json.loads(text, object_pairs_hook=unique_object, parse_constant=invalid_constant)
+
 
 def _text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
+
+def validate_test_data(step: dict) -> list[str]:
+    """Validate optional human-readable data without interpreting JSON or SQL."""
+    if "test_data" not in step:
+        return []
+    value = step["test_data"]
+    if not _text(value):
+        return ["test_data must be a non-empty string; omit it when there is no data"]
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError:
+        return ["test_data must be a valid UTF-8 string"]
+    if len(value) > MAX_TEST_DATA_CHARACTERS:
+        return [f"test_data exceeds the character limit ({MAX_TEST_DATA_CHARACTERS})"]
+    if any((ord(char) < 32 and char not in "\n\t") or ord(char) == 127 for char in value):
+        return ["test_data control characters must use visible escapes; only newline and tab are allowed"]
+    return []
 
 
 def validate_catalog(catalog: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(catalog, dict):
         return ["catalog must be a JSON object"]
-    if catalog.get("schema_version") != 1:
-        errors.append("schema_version must equal 1")
+    if type(catalog.get("schema_version")) is not int or catalog["schema_version"] != 1:
+        errors.append("schema_version must be the integer 1")
     cases = catalog.get("test_cases")
     if not isinstance(cases, list) or not cases:
         return errors + ["test_cases must be a non-empty list"]
@@ -81,6 +118,8 @@ def validate_catalog(catalog: Any) -> list[str]:
                     errors.append(f"{step_prefix}.name must describe a concrete action")
             if not _text(step.get("expected_result")):
                 errors.append(f"{step_prefix}.expected_result must be a non-empty string")
+            errors.extend(f"{step_prefix}.{error}" for error in validate_test_data(step))
+            errors.extend(f"{step_prefix}.{error}" for error in validate_api_details(step))
     return errors
 
 
@@ -89,8 +128,8 @@ def main() -> int:
     parser.add_argument("--input", required=True, type=Path, help="UTF-8 JSON file with test cases")
     args = parser.parse_args()
     try:
-        catalog = json.loads(args.input.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        catalog = read_json(args.input.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
         print(f"Cannot read test cases: {exc}")
         return 2
     errors = validate_catalog(catalog)

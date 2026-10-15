@@ -100,6 +100,30 @@ class TestPlanTests(unittest.TestCase):
             self.assertEqual(2, result.returncode)
             self.assertIn('missing catalog IDs', result.stdout)
 
+    def test_result_cli_uses_the_strict_catalog_reader(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            message = json.loads((ROOT/'examples/test-plan/result-v3.json').read_text())
+            (root/'result.json').write_text(json.dumps(message))
+            (root/'plan-v3.md').write_text('Synthetic plan')
+            catalog_path = root/'cases-v3.json'
+            original = (ROOT/'examples/test-plan/cases-v3.json').read_text()
+            catalog_path.write_text(original)
+            command = [sys.executable, str(ROOT/'scripts/validate_qa_result.py'), '--input', str(root/'result.json'),
+                       '--task-id', message['task_id'], '--request-id', message['request_id'], '--agent', message['agent']]
+            result = subprocess.run(command,capture_output=True,text=True)
+            self.assertEqual(0,result.returncode,result.stdout+result.stderr)
+            for catalog, diagnostic in (
+                    (original.replace('"schema_version": 1', '"schema_version": 0, "schema_version": 1', 1), 'duplicate JSON key'),
+                    ('{"unused": NaN,' + original[1:], 'invalid JSON constant'),
+                    ('['*2000 + '0' + ']'*2000, 'test_cases_artifact cannot be read')):
+                with self.subTest(diagnostic=diagnostic):
+                    catalog_path.write_text(catalog)
+                    result = subprocess.run(command,capture_output=True,text=True)
+                    self.assertEqual(2,result.returncode,result.stdout+result.stderr)
+                    self.assertIn(diagnostic,result.stdout)
+                    self.assertNotIn('Traceback',result.stderr)
+
 
 if __name__ == '__main__':
     unittest.main()

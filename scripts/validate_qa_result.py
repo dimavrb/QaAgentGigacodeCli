@@ -9,7 +9,7 @@ from pathlib import Path
 
 from qa_contract import parse_message, validate_message
 from self_review import validate_self_review
-from validate_test_cases import validate_catalog
+from validate_test_cases import read_json, validate_catalog
 from investigation_state import validate_review, validate_state
 from test_plan import PLAN_EVENTS, validate_plan
 from test_reporting import check_bundle
@@ -104,12 +104,12 @@ def main() -> int:
             if not catalog_path.is_absolute():
                 catalog_path = args.input.parent / catalog_path
             try:
-                catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+                catalog = read_json(catalog_path.read_text(encoding="utf-8"))
                 catalog_errors = validate_catalog(catalog)
                 errors.extend(f"test_cases_artifact: {error}" for error in catalog_errors)
                 if not catalog_errors:
                     errors.extend(validate_plan(message["payload"], message["event"], catalog))
-            except (OSError, json.JSONDecodeError) as exc:
+            except (OSError, UnicodeError, ValueError, RecursionError) as exc:
                 errors.append(f"test_cases_artifact cannot be read: {exc}")
         if not errors and message['event'] == 'test_report_ready':
             paths = []

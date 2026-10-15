@@ -81,6 +81,7 @@ def read_state(path):
 
 
 def state_summary(state):
+    from qa_tasks import presentation_reference
     return dict(task_id=state['task_id'], title=state['title'], revision=state['revision'],
                 execution_status=state['execution_status'], review_status=state['review_status'],
                 qa_outcome=state.get('qa_outcome'), active_request_ids=state['active_request_ids'],
@@ -92,7 +93,8 @@ def state_summary(state):
                 open_question_ids=state.get('open_question_ids', []),
                 requests=[dict(request_id=rid, agent=row['assignment']['agent'], stage=row['assignment']['stage'],
                                status=row['status'], owner_task_id=row['owner_task_id'],
-                               result_path=row['assignment']['result_path'], event=row['result']['event'] if row['result'] else None)
+                               result_path=row['assignment']['result_path'], event=row['result']['event'] if row['result'] else None,
+                               **({'presentation': presentation_reference(row['presentation'])} if 'presentation' in row else {}))
                           for rid, row in state['requests'].items()],
                 questions=[dict(questionnaire_id=key, status=row['status'], answers_path=row['answers_path'],
                                 unresolved_question_ids=row['unresolved_question_ids']) for key, row in state['questions'].items()],
@@ -201,6 +203,9 @@ def assignment_record(source, base):
     record['inputs'] = [local_path(i, base) for i in id_list(source.get('inputs', []), 'inputs')]
     record['result_path'] = local_path(record['result_path'], base)
     record['artifact_base'] = local_path(source.get('artifact_base', str(Path(record['result_path']).parent)), base)
+    if 'plan_partition' in record:
+        from partition_test_plan import normalize_assignment
+        normalize_assignment(record, base)
     if 'evidence_session_id' in record:
         record['evidence_session_id'] = required(record['evidence_session_id'], 'evidence_session_id')
     if 'improvement_plan' in record:
@@ -346,6 +351,9 @@ def inspect_result(assignment):
     for key in ('investigation_state', 'stub_assignment'):
         if key in assignment:
             paths.add(assignment[key])
+    if assignment.get('plan_partition'):
+        from partition_test_plan import verify_result
+        paths.update(verify_result(assignment, message))
     before = {p: fingerprint(p) for p in sorted(paths)}
     command = [sys.executable, str(Path(__file__).with_name('validate_qa_result.py')),
                '--input', str(path), '--task-id', assignment['task_id'],
@@ -373,6 +381,9 @@ def inspect_result(assignment):
     after = {p: fingerprint(p) for p in sorted(paths)}
     if before != after:
         raise ValueError('Артефакты изменились во время проверки')
+    if assignment.get('plan_partition'):
+        from partition_test_plan import verify_result
+        verify_result(assignment, message)
     if 'combination_coverage' in payload:
         from combination_coverage import artifact_paths
         if artifact_paths(payload, path.parent) != combination_paths:
@@ -469,6 +480,12 @@ def assign(path, source, base, expected_revision):
             raise ValueError('Задача уже завершена')
         if record['task_id'] != state['task_id']:
             raise ValueError('Назначение относится к другой задаче')
+        if record.get('plan_partition'):
+            from partition_test_plan import load
+            binding = record['plan_partition']
+            manifest, _, _ = load(binding['path'],binding['sha256'])
+            if manifest['state_path'] != str(Path(path).resolve()):
+                raise ValueError('Partition assignment belongs to another task registry')
         rid = record['request_id']
         if rid in state['requests']:
             raise ValueError('request_id уже использован; для нового назначения нужен новый ID')
@@ -499,6 +516,10 @@ def assign(path, source, base, expected_revision):
 
 
 def check_inputs(row):
+    if row['assignment'].get('plan_partition'):
+        from partition_test_plan import load
+        binding = row['assignment']['plan_partition']
+        load(binding['path'], binding['sha256'])
     if {p: fingerprint(p) for p in row['assignment']['inputs']} != row['input_hashes']:
         raise ValueError('Исходные материалы назначения изменились; требуется новое назначение')
 
@@ -584,7 +605,18 @@ def review_result(path, rid, decision, passed, expected_revision):
         row.update(status='accepted' if passed else 'changes_requested',
                    review=dict(status='passed' if passed else 'changes_requested', decision=decision, reviewed_at=now()))
         return event(state, 'result_accepted' if passed else 'changes_requested', request_id=rid)
-    return mutate(path, expected_revision, operation)
+    accepted = mutate(path, expected_revision, operation)
+    # Rendering is a derived artifact, published only after acceptance is durable.
+    # A rendering failure remains visible without undoing the content decision.
+    if passed:
+        row = read_state(path)['requests'][rid]
+        if (row['assignment']['agent'] == 'qa-test-plan-writer' and row['result']['event'] == 'plan_ready'
+                and row['assignment'].get('plan_partition', {}).get('mode') != 'group'):
+            from build_test_plan_html import publish
+            presentation = publish(path, rid)
+            accepted['revision'] = presentation['revision']
+            accepted['result'] = dict(accepted['result'], presentation=presentation['result'])
+    return accepted
 
 
 def register_questions(path, input_path, answers_path, expected_revision=None):

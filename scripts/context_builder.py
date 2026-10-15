@@ -1,15 +1,36 @@
 """Frozen role-specific instruction projections; no implicit truncation of evidence."""
+import hashlib
 import json
 from pathlib import Path
 import re
 
 from qa_contract import ROLE_EVENTS
 from read_test_data_guide import ROLE_SECTIONS, SECTIONS, selected_sections
+from validate_test_cases import read_json, validate_catalog
 
 ROOT = Path(__file__).resolve().parents[1]
 QUALITY_ROLES = {'qa-analyst','qa-impact-analyst','qa-test-plan-writer','qa-feature-tester','qa-test-automation',
                  'qa-autotest-reviewer','qa-defect-investigator','qa-result-reviewer','qa-conclusion-reviewer'}
 REVIEWERS = {'qa-result-reviewer','qa-autotest-reviewer','qa-conclusion-reviewer'}
+CASE_ROLES = {'qa-test-plan-writer','qa-feature-tester','qa-test-automation','qa-autotest-reviewer'}
+CASE_READERS = QUALITY_ROLES | {'qa-test-data-builder','qa-test-env-configurator'}
+CASE_EXAMPLES = {'api': 'create.json', 'ui': 'create.json', 'kafka': 'persistence.json'}
+
+
+def catalog_check(text, digest):
+    """Describe structural validity of supplied JSON; never execute its contents."""
+    if not text.lstrip().startswith(('{', '[')):
+        return None
+    try:
+        data = read_json(text)
+    except (ValueError, RecursionError) as exc:
+        return dict(kind='json', sha256=digest, valid=False, errors=[str(exc)])
+    if not isinstance(data, dict) or 'test_cases' not in data:
+        return None
+    errors = validate_catalog(data)
+    return dict(kind='test_case_catalog', sha256=digest, valid=not errors,
+                case_count=len(data['test_cases']) if isinstance(data.get('test_cases'), list) else None,
+                errors=errors, validation='validate_test_cases.validate_catalog; structure only')
 
 
 def sections(text):
@@ -60,6 +81,14 @@ def profile(assignment, step):
     mode = step.get('context_mode', 'compact')
     if mode not in ('compact','full'):
         raise ValueError('context_mode must be compact/full')
+    extra=step.get('instruction_paths',[])
+    if not isinstance(extra,list) or any(not isinstance(p,str) for p in extra):
+        raise ValueError('instruction_paths must contain package paths')
+    examples=[p for p in extra if p.startswith('examples/test-cases/') and p.endswith('.json')]
+    scope=assignment.get('review_scope') or assignment.get('review_target',{}).get('scope')
+    case_context=(role in CASE_ROLES or scope == 'test_cases'
+                  or (role in CASE_READERS and (assignment.get('test_type') is not None or examples))
+                  or (role in REVIEWERS and 'docs/TEST_CASE_STYLE.md' in extra))
     specs = {}
     def add(path, kind='full', names=None):
         specs[path] = dict(kind=kind, **({'sections':names} if names is not None else {}))
@@ -70,7 +99,30 @@ def profile(assignment, step):
     if role in ('qa-analyst','qa-test-plan-writer'):
         add('docs/TEST_PLAN.md','sections',['','Маршрут','Выбор сценариев до детализации','Смысловые дубли','Вопросы и частичная готовность','Адресные изменения и ревью','Проверка артефактов'])
         add('docs/TEST_DESIGN.md'); add('docs/TEST_CASE_STYLE.md'); add('docs/TEST_CASE_SELECTION.md')
-    if role == 'qa-test-plan-writer': add('.gigacode/skills/qa-test-cases/SKILL.md')
+    if role == 'qa-test-plan-writer':
+        add('.gigacode/skills/qa-test-cases/SKILL.md'); add('docs/TEST_PLAN_HTML.md')
+        add('docs/TEST_PLAN_PARTITION.md')
+    if assignment.get('plan_partition'):
+        add('docs/TEST_PLAN_PARTITION.md')
+    if case_context:
+        add('docs/TEST_CASE_REVIEW.md'); add('docs/TEST_CASE_STYLE.md')
+        if role in ('qa-test-plan-writer','qa-result-reviewer'):
+            add('docs/TEST_CASE_SELECTION.md'); add('.gigacode/skills/qa-test-cases/SKILL.md')
+            add('docs/TEST_PLAN_HTML.md')
+        test_type=assignment.get('test_type')
+        if test_type is not None and (type(test_type) is not str or test_type not in CASE_EXAMPLES):
+            raise ValueError('test_type must be api, ui or kafka for case context')
+        types={test_type} if test_type else set()
+        for path in examples:
+            parts=path.split('/')
+            if len(parts) != 4 or parts[2] not in CASE_EXAMPLES:
+                raise ValueError('test-case examples must use examples/test-cases/<type>/<file>.json')
+            types.add(parts[2])
+            add(path,'case_example')
+        for kind in sorted(types):
+            add(f'examples/test-cases/{kind}/INDEX.md')
+            if not any(p.startswith(f'examples/test-cases/{kind}/') for p in examples):
+                add(f'examples/test-cases/{kind}/{CASE_EXAMPLES[kind]}','case_example')
     if role in ('qa-test-automation','qa-autotest-reviewer'):
         add('docs/AUTOTEST_QUALITY.md'); add('docs/AUTOTEST_NAMING.md'); add('docs/TEST_CASE_STYLE.md')
     if role in REVIEWERS:
@@ -105,9 +157,6 @@ def profile(assignment, step):
     if role == 'qa-test-report-writer': add('docs/TEST_REPORTING.md')
     if assignment.get('browser_pool_path') or assignment.get('test_type') == 'ui':
         add('.gigacode/skills/qa-browser-repro/SKILL.md'); add('docs/BROWSER_PROFILES.md')
-    extra=step.get('instruction_paths',[])
-    if not isinstance(extra,list) or any(not isinstance(p,str) for p in extra):
-        raise ValueError('instruction_paths must contain package paths')
     for path in extra:
         # Preserve declared extras; apply existing compact policy for known protocol documents.
         if path == 'docs/REVIEW_EXECUTION.md':
@@ -118,7 +167,8 @@ def profile(assignment, step):
     for path in specs:
         if not (ROOT/path).resolve().is_relative_to(ROOT):
             raise ValueError('Instruction path must stay inside package')
-    if mode == 'full': specs={path:dict(kind='full') for path in specs}
+    if mode == 'full': specs={path:(spec if spec['kind'] == 'case_example' else dict(kind='full'))
+                             for path,spec in specs.items()}
     # Fail before launching if a required section/schema changed.
     for path,spec in specs.items(): render((ROOT/path).read_text(), spec, role)
     return dict(schema_version=1,mode=mode,role=role,documents=specs)
@@ -130,6 +180,11 @@ def render(text, spec, role):
     if kind == 'sections': return select(text,spec['sections'])
     if kind == 'contract': return contract(text,role)
     if kind == 'self_review': return self_review(text,role)
+    if kind == 'case_example':
+        checked=catalog_check(text,hashlib.sha256(text.encode('utf-8')).hexdigest())
+        if not checked or checked['kind'] != 'test_case_catalog' or not checked['valid']:
+            raise ValueError('Invalid test-case example: ' + '; '.join(checked['errors'] if checked else ['not a catalog']))
+        return text
     raise ValueError('Unknown context projection')
 
 
@@ -140,9 +195,10 @@ def snapshots(step):
         raise ValueError('Context builder changed; create a new plan')
     result={}
     for name,digest in step['instruction_hashes'].items():
-        if exchange.fingerprint(ROOT/name) != digest:
+        data=(ROOT/name).read_bytes()
+        if hashlib.sha256(data).hexdigest() != digest:
             raise ValueError('Managed instructions changed')
-        text=(ROOT/name).read_text()
+        text=data.decode('utf-8')
         result[name]=render(text,frozen['documents'][name],frozen['role']) if frozen else text
     return result
 
@@ -165,27 +221,41 @@ def correction_context(packet):
 
 def assemble(handoff, actions, expected_hashes=None):
     import task_exchange as exchange
-    inputs={}; content_index={}; excluded=set(handoff['assignment'].get('blind_review_exclusions',[]))
+    partition_scope = None
+    if handoff['assignment'].get('plan_partition'):
+        from partition_test_plan import load
+        binding = handoff['assignment']['plan_partition']
+        manifest, _, _ = load(binding['path'], binding['sha256'])
+        partition_scope = dict(mode=binding['mode'], base_revision=manifest['base_revision'],
+                               plan_revision=manifest['plan_revision'], group_id=binding.get('group_id'))
+    inputs={}; checks={}; input_hashes={}; content_index={}; excluded=set(handoff['assignment'].get('blind_review_exclusions',[]))
     for name in handoff['assignment']['inputs']:
-        digest=exchange.fingerprint(name)
+        data=Path(name).read_bytes()
+        digest=hashlib.sha256(data).hexdigest()
+        input_hashes[name]=digest
         if expected_hashes and name in expected_hashes and digest != expected_hashes[name]:
             raise ValueError('Context input changed: ' + name)
         if name in excluded:
             inputs[name]=dict(unavailable='prior reviewer feedback excluded from independent assessment',sha256=digest);continue
-        try: text=Path(name).read_text(encoding='utf-8')
+        try: text=data.decode('utf-8')
         except UnicodeError:
             inputs[name]=dict(unavailable='binary input; use an authorized observer or report a limitation',sha256=digest);continue
         if name == handoff['assignment'].get('correction_feedback'):
             inputs[name]=dict(projection='correction_feedback',source_sha256=digest,content=correction_context(json.loads(text)))
             continue
+        checked=catalog_check(text,digest)
+        if checked:
+            checks[name]=checked
         if text in content_index:
             inputs[name]=dict(input_ref=content_index[text],sha256=digest)
         else:
             inputs[name]=text;content_index[text]=name
     def content(path):
-        if path in inputs: return dict(input_ref=path,sha256=exchange.fingerprint(path))
+        if path in inputs: return dict(input_ref=path,sha256=input_hashes[path])
         return exchange.read_json(path)
     sources={s['request_id']:content(s['result_path']) for s in handoff.get('sources',[])}
     answers={s['questionnaire_id']:content(s['answers_path']) for s in handoff.get('answer_sources',[])}
     completed={aid:{'tool':row['tool'],'status':row['status'],'result':row.get('result')} for aid,row in actions.items()}
-    return dict(handoff=handoff,input_contents=inputs,source_reports=sources,applied_answers=answers,recorded_actions=completed)
+    return dict(handoff=handoff,input_contents=inputs,catalog_validations=checks,
+                **({'partition_scope':partition_scope} if partition_scope else {}),
+                source_reports=sources,applied_answers=answers,recorded_actions=completed)
