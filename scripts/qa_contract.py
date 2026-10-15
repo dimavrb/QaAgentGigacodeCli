@@ -182,6 +182,12 @@ def validate_message(
             errors.append(str(exc))
     if event == "analysis_ready":
         errors.extend(validate_analysis(message["payload"]))
+    if agent == 'qa-test-env-configurator':
+        from environment_readiness import validate_questions
+        try:
+            validate_questions(message['payload'], event)
+        except ValueError as exc:
+            errors.append(str(exc))
     if event == IMPACT_EVENT:
         errors.extend(validate_impact_payload(message["payload"], expected_scenario_ids))
     if agent in ('qa-result-reviewer', 'qa-conclusion-reviewer') or agent == 'qa-autotest-reviewer' and 'target_request_id' in message['payload']:
@@ -210,8 +216,8 @@ def validate_message(
     if event in {"data_ready", "data_partial"}:
         data_ids = message["payload"].get("data_ids")
         recipe = message["payload"].get("recipe")
-        if data_ids is not None and not isinstance(data_ids, list):
-            errors.append("payload.data_ids must be a list")
+        if data_ids is not None:
+            id_list(data_ids, 'payload.data_ids', errors)
         if recipe is not None and (not isinstance(recipe, str) or not recipe.strip()):
             errors.append("payload.recipe must be a non-empty string")
     if event == "investigation_complete":

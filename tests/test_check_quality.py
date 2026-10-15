@@ -13,7 +13,7 @@ import task_exchange as exchange
 import review_cycle
 import execution_supervisor as supervisor
 from content_review import validate_review, check_required_reviews
-from self_review_fixtures import review_for
+from self_review_fixtures import review_for, publish_content_review
 from task_acceptance import criteria_packet
 
 
@@ -109,6 +109,60 @@ class QualityAcceptanceTests(unittest.TestCase):
         self.assess(['feature'])
         self.proof.write_text('Changed after assessment')
         with self.assertRaises(ValueError):exchange.finish_task(self.state,'passed','Synthetic',None)
+
+    def test_verified_execution_rechecks_late_blocking_review_without_required_reviews(self):
+        self.feature()
+        publish_content_review(self.state, 'feature')
+        before = self.state.read_bytes()
+        with self.assertRaisesRegex(ValueError, 'Unresolved blocking'):
+            self.assess(['feature'])
+        self.assertEqual(before, self.state.read_bytes())
+
+    def test_non_verified_execution_assessments_are_saved_and_rechecked(self):
+        self.feature()
+        for status in ('failed', 'unknown', 'not_applicable'):
+            with self.subTest(status=status):
+                exchange.assess_criteria(self.state, dict(assessments=[dict(
+                    criterion_id='C-1', status=status, decision='Synthetic scope assessment',
+                    request_ids=['feature'], evidence=[str(self.proof)])]), None)
+                assessment = exchange.read_state(self.state)['criteria']['C-1']['assessment']
+                self.assertEqual(status, assessment['status'])
+                self.assertIn(str(self.proof), assessment['evidence_hashes'])
+                if status != 'not_applicable':
+                    with self.assertRaisesRegex(ValueError, 'C-1'):
+                        exchange.finish_task(self.state, 'passed', 'Mandatory execution is unconfirmed', None)
+        exchange.finish_task(self.state, 'not_applicable', 'Documented scope exclusion', None)
+        self.assertEqual('completed', exchange.read_state(self.state)['execution_status'])
+
+    def test_unknown_and_failed_execution_assessments_can_record_missing_evidence(self):
+        for status in ('failed', 'unknown'):
+            with self.subTest(status=status):
+                exchange.assess_criteria(self.state, dict(assessments=[dict(
+                    criterion_id='C-1', status=status, decision='No execution evidence available',
+                    request_ids=[], evidence=[])]), None)
+                self.assertEqual(status, exchange.read_state(self.state)['criteria']['C-1']['assessment']['status'])
+
+    def test_non_verified_execution_assessment_packet_is_atomic(self):
+        self.feature()
+        before = self.state.read_bytes()
+        packet = dict(assessments=[dict(criterion_id='C-1', status='unknown',
+            decision='Evidence remains incomplete', request_ids=['feature'], evidence=[str(self.proof)]),
+            dict(criterion_id='missing', status='failed', decision='Invalid second entry')])
+        with self.assertRaisesRegex(ValueError, 'Неизвестный'):
+            exchange.assess_criteria(self.state, packet, None)
+        self.assertEqual(before, self.state.read_bytes())
+
+    def test_non_applicable_execution_still_requires_evidence_and_rechecks_hashes(self):
+        self.feature()
+        packet = dict(assessments=[dict(criterion_id='C-1', status='not_applicable',
+            decision='Execution is outside the documented scope', request_ids=['feature'], evidence=[])])
+        with self.assertRaisesRegex(ValueError, 'доказательства'):
+            exchange.assess_criteria(self.state, packet, None)
+        packet['assessments'][0]['evidence'] = [str(self.proof)]
+        exchange.assess_criteria(self.state, packet, None)
+        self.proof.write_text('Evidence changed after scope exclusion')
+        with self.assertRaisesRegex(ValueError, 'Принятый результат изменился'):
+            exchange.finish_task(self.state, 'not_applicable', 'Stale scope exclusion', None)
 
     def test_typed_definition_rejects_missing_ids_and_unknown_context(self):
         for extra in ({'scenario_ids':[]}, {'scenario_ids':['TC-1','TC-1']},

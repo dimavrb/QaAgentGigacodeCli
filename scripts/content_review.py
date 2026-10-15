@@ -190,6 +190,15 @@ def check_execution_criterion(definition, source, state, results):
     return authors
 
 
+def check_blocking_reviews(state, author):
+    """An accepted rejection remains binding for this immutable request ID."""
+    for other in state['requests'].values():
+        if (other['status'] == 'accepted'
+                and other['assignment'].get('review_target', {}).get('request_id') == author
+                and other['result']['event'] == 'changes_requested'):
+            raise ValueError('Unresolved blocking review of the current target')
+
+
 def check_required_reviews(definition, state, results, selected_authors=None, combination_bundles=None):
     from qa_contract import parse_message
     authors = selected_authors if selected_authors is not None else {
@@ -204,10 +213,7 @@ def check_required_reviews(definition, state, results, selected_authors=None, co
         if not state['requests'][author]['owner_task_id']:
             raise ValueError('missing independent content review: author owner unknown')
         # Passing votes cannot erase a blocking finding on these exact bytes.
-        for other in state['requests'].values():
-            if (other['status'] == 'accepted' and other['assignment'].get('review_target', {}).get('request_id') == author
-                    and other['result']['event'] == 'changes_requested'):
-                raise ValueError('Unresolved blocking review of the current target')
+        check_blocking_reviews(state, author)
         for slot in definition['required_reviews']:
             owners = set()
             for rid, result in results.items():

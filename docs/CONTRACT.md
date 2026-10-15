@@ -65,8 +65,8 @@
 | `coverage_ready` | `plan_artifact`, `plan_revision`, `requirement_coverage`, `open_questions`; ранняя карта без подробного каталога |
 | `plan_partial` | Те же поля плюс `test_cases_artifact`; готовая часть и явные блокеры проектирования |
 | `plan_ready` | `plan_artifact`, `plan_revision`, `test_cases_artifact`, `requirement_coverage`, `open_questions`; `plan_artifact` — краткий план с покрытием по ID без повторения шагов кейсов; `test_cases_artifact` — локальный JSON-путь, абсолютный или относительно файла результата, проверенный по `docs/TEST_CASE_STYLE.md` |
-| `environment_ready` / `environment_partial` | `environment_id`, `product_version`, `verified_capabilities`, `limitations`; для partial ещё `ready_scenarios`, `blocked_scenarios` |
-| `data_ready` / `data_partial` | `environment_id`, `data_ids` или `recipe`, `verified_properties`, `cleanup`, `scenario_ids`; для partial ещё `blocked_scenarios` |
+| `environment_ready` / `environment_partial` | `environment_id`, `product_version`, `verified_capabilities`, `limitations`; в новых назначениях ещё `environment_assignment_sha256`, `guide_checks` по ENVIRONMENT_READINESS.md; для partial ещё `ready_scenarios`, `blocked_scenarios` |
+| `data_ready` / `data_partial` | `environment_id`, `data_ids` или `recipe`, `verified_properties`, `cleanup`, `scenario_ids`; для partial ещё `blocked_scenarios`; новые назначения — product_version, data_assignment_sha256, data_state и проверки каждого условия по DATA_READINESS.md |
 | `stubs_plan_ready` | `environment_id`, `provider`, `mcp_server`, `project_id`, `namespace`, `assignment_artifact`, `scenario_ids`, `limitations`; черновик без мутаций |
 | `stubs_configured` | Контекст и `profile_artifact`, `verification_artifact`, `configured_scenarios`, `blocked_scenarios`, `cleanup`, `limitations`; конфигурация не означает готовность исполнения |
 | `stubs_ready` / `stubs_partial` | `environment_id`, `provider`, `mcp_server`, `project_id`, `namespace`, `profile_artifact`, `verification_artifact`, `scenario_ids`, `blocked_scenarios`, `cleanup`, `limitations`; приёмка с внешним --stub-assignment по STUBS.md |
@@ -99,6 +99,10 @@ qa-impact-analyst возвращает impact_ready либо blocked. impact_rea
 `feature_test_complete` содержит полную матрицу назначенного набора, включая смешанные результаты и `not_run`. `blocked` роли `qa-feature-tester` допустим только при подтверждённой блокировке всех назначенных сценариев: в `payload` обязательны те же `scenario_results`, `uncovered_scenarios`, `defects`, все результаты имеют статус `blocked`. Нехватка времени — `not_run`, а не техническая блокировка. В остальных ролях событие `blocked` сохраняет прежний формат.
 
 В `environment_partial` списки `ready_scenarios` и `blocked_scenarios`, в `data_partial` списки `scenario_ids` и `blocked_scenarios` состоят из уникальных непустых строковых ID, не пересекаются и вместе точно совпадают с назначением. В `data_ready` список `scenario_ids` точно совпадает с назначением. Передавай полный назначенный набор валидатору через повторяемый `--scenario-id`. Без него программная проверка принадлежности назначению невозможна.
+
+Новые назначения qa-test-data-builder требуют независимый data_assignment по [DATA_READINESS.md](DATA_READINESS.md). verified_properties содержит каждый requirement_id с фактическим результатом, статусом, временем и локальными доказательствами. Готовность вычисляется по всем свойствам, связям и видимости; data_state=cleaned/unknown и истёкший срок исключают ready/partial. data_ids состоят из уникальных непустых строк. Без scope можно сообщить blocked; историческая структура без него не разрешает новый ready-переход.
+
+Новые назначения qa-jira-defect-creator требуют jira_assignment по [JIRA_PUBLICATION.md](JIRA_PUBLICATION.md) и точный принятый state-backed defect_confirmed как ready-зависимость. Оба успешных события содержат issue_key, issue_url, duplicate_check, evidence, jira_assignment_sha256 и publication_artifact. Поиск должен быть полным, кандидаты прочитаны/оценены; created требует квитанции одного create и чтения согласованных полей, duplicate_found — подтверждённого совпадения без write. Неопределённый исход остаётся blocked; смена gateway для того же дефекта не обходит его. Структурный исторический отчёт сам по себе не разрешает новый переход или завершение.
 
 ## Результат аналитика
 
@@ -153,7 +157,7 @@ partition_artifact с проверяемой сборкой. Scope провер�
 1. Исполнитель получает сценарий только после выполнения его обязательных условий стенда и данных. Частичная готовность не блокирует независимые сценарии.
 2. `analysis_ready` требует связи существенных требований и рисков со сценариями и источниками ожидаемого поведения; вопросы, меняющие результат проверки, отмечаются как блокирующие.
 3. `coverage_ready` передаёт раннюю карту и вопросы без объявления кейсов готовыми. `plan_partial` требует готовых и заблокированных частей без недетализированных строк `planned`; не завершает весь план. `plan_ready` не допускает незавершённого проектирования и требует связи существенных критериев приёмки с существующими ID кейсов из каталога либо обоснованного исключения. Подробные шаги и ожидаемые результаты находятся в каталоге, а не повторяются в плане и сообщении.
-4. `environment_ready` требует проверки фактической конфигурации, а `data_ready` — проверки свойств и связей данных.
+4. `environment_ready` требует подтверждённого выполнения всех пунктов переданного админгайда по [ENVIRONMENT_READINESS.md](ENVIRONMENT_READINESS.md): coordinator environment_assignment, environment_assignment_sha256 и guide_checks каждого пункта с действиями, статусом, временем и доказательствами. Непроверенный/невыполненный пункт исключает полную готовность. `data_ready` требует проверки свойств и связей данных.
 5. `feature_test_complete` перечисляет каждый назначенный сценарий как выполненный, заблокированный или не запущенный; непроверенное не считается успешным.
 6. `ready_for_review` требует конкретной версии изменений и отчёта о запуске либо причины отсутствия запуска.
 7. `review_passed` относится к проверенной версии изменений. Значимые последующие изменения требуют нового ревью.

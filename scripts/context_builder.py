@@ -102,6 +102,10 @@ def profile(assignment, step):
     if role == 'qa-test-plan-writer':
         add('.gigacode/skills/qa-test-cases/SKILL.md'); add('docs/TEST_PLAN_HTML.md')
         add('docs/TEST_PLAN_PARTITION.md')
+    if role == 'qa-test-env-configurator' or assignment.get('review_target', {}).get('scope') == 'environment':
+        add('docs/ENVIRONMENT_READINESS.md')
+    if role == 'qa-test-data-builder' or assignment.get('review_target', {}).get('scope') == 'data':
+        add('docs/DATA_READINESS.md')
     if assignment.get('plan_partition'):
         add('docs/TEST_PLAN_PARTITION.md')
     if case_context:
@@ -143,7 +147,8 @@ def profile(assignment, step):
         add('docs/TEST_DATA.md','sections',[SECTIONS[n] for n in names])
     elif step.get('test_data_sections'):
         raise ValueError('test_data_sections requires a test-data role')
-    if role == 'qa-stub-builder': add('docs/STUBS.md')
+    if role == 'qa-stub-builder' or assignment.get('review_target', {}).get('scope') == 'stubs':
+        add('docs/STUBS.md')
     if role == 'qa-impact-analyst':
         add('docs/IMPACT_ANALYSIS.md'); add('docs/QA_IMPROVEMENTS.md')
     if assignment.get('improvement_plan'): add('docs/QA_IMPROVEMENTS.md')
@@ -155,6 +160,8 @@ def profile(assignment, step):
         add('docs/DEFECT_VERIFICATION.md','sections',['','Когда включать','Порядок работы','Артефакт и проверка','Короткое сообщение пользователю'])
     if role == 'qa-feature-tester': add('docs/EXECUTION.md','sections',['','Общее условие вместо повторных попыток','Возобновление'])
     if role == 'qa-test-report-writer': add('docs/TEST_REPORTING.md')
+    if role == 'qa-jira-defect-creator' or assignment.get('review_target', {}).get('scope') == 'jira_publication':
+        add('docs/JIRA_PUBLICATION.md'); add('docs/ACTION_GATEWAY.md')
     if assignment.get('browser_pool_path') or assignment.get('test_type') == 'ui':
         add('.gigacode/skills/qa-browser-repro/SKILL.md'); add('docs/BROWSER_PROFILES.md')
     for path in extra:

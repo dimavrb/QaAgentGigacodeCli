@@ -11,12 +11,14 @@ import sys
 from pathlib import Path
 
 from qa_files import atomic_text, project_lock, read_bytes
+from qa_agent_state import package_roles, sync_roles
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = Path('.qa-agent/project.local.json')
 CONTEXT = Path('.qa-agent/APP_CONTEXT.md')
 IGNORE_LINES = ('/.qa-agent/project.local.json', '/.qa-agent/update.local.json',
-                '/.qa-agent-state/', '/.qa-agent/artifacts/')
+                '/.qa-agent-state/', '/.qa-agent/artifacts/',
+                '/.qa-agent/agents.local.json', '/.qa-agent/agent-updates/')
 CONFIG_FIELDS = {'schema_version', 'package_name', 'package_version', 'package_root', 'project_root'}
 
 
@@ -53,6 +55,7 @@ def package_info(root: Path = ROOT) -> dict:
             raise ValueError(f'invalid extension resource: {key}')
     for relative in ('docs/COORDINATOR.md', 'docs/EXTENSION_RUNTIME.md',
                      'scripts/qa_project.py', 'scripts/qa_extension_mcp.py', 'scripts/qa_tasks.py',
+                     'scripts/qa_agent_state.py', 'scripts/qa_project_agents.py',
                      'examples/qa-only/APP_CONTEXT.template.md'):
         if not (root / relative).is_file():
             raise ValueError(f'missing package resource: {relative}')
@@ -160,6 +163,12 @@ def initialize_locked(project, info, *, rebind, expected_binding, expected_bindi
             'context_file': str(context_path), 'external_systems_configured': False}
 
 
+def project_agent_differences(project: Path, package: Path) -> list[str]:
+    info = package_info(package)
+    result = sync_roles(project, package, info['package_version'], package_roles(package), managed_only=True)
+    return [item['name'] for item in result['conflict_details']]
+
+
 def doctor(project: Path, root: Path = ROOT) -> dict:
     info = package_info(root)
     project = project_path(project, Path(info['package_root']))
@@ -168,7 +177,13 @@ def doctor(project: Path, root: Path = ROOT) -> dict:
         checks.append({'name': name, 'status': 'passed' if passed else 'failed', 'detail': detail})
     check('python', sys.version_info >= (3, 10), sys.version.split()[0])
     check('agents', info['agent_count'] == 14, str(info['agent_count']))
-    check('skills', info['skill_count'] == 5, str(info['skill_count']))
+    project_agents = sync_roles(project, Path(info['package_root']), info['package_version'],
+                               package_roles(Path(info['package_root'])), managed_only=True)
+    check('project_agent_copies', not project_agents['needs_sync'] and project_agents['status'] != 'needs_attention',
+          'Managed QA roles need synchronization/review: ' + ', '.join(project_agents['conflicts'])
+          if project_agents['needs_sync'] or project_agents['status'] == 'needs_attention'
+          else 'Project roles are synchronized; local adaptations: ' + ', '.join(project_agents['adapted_roles']))
+    check('skills', info['skill_count'] == 6, str(info['skill_count']))
     check('commands', {'qa', 'qa:init', 'qa:doctor', 'qa:tasks', 'qa:resume'} <= set(info['commands']), ', '.join(info['commands']))
     config_path = project / CONFIG
     if config_path.exists():
@@ -191,6 +206,7 @@ def doctor(project: Path, root: Path = ROOT) -> dict:
     check('gigacode', bool(cli_version), cli_version or 'CLI unavailable or version probe failed')
     return {'status': 'ready_for_cli_check' if all(c['status'] == 'passed' for c in checks) else 'needs_attention',
             **info, 'project_root': str(project), 'checks': checks,
+            'project_agents': project_agents,
             'live_extension_verified': False, 'external_systems_configured': False}
 
 

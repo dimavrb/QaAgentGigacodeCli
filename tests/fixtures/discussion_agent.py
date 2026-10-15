@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 sys.path[:0]=[str(ROOT/'scripts'),str(ROOT/'tests')]
 from self_review_fixtures import review_for
+from environment_fixtures import attach_environment_checks
 from conclusion_review import pointer
 from qa_contract import parse_message
 
@@ -86,4 +87,6 @@ else:
             event='blocked'
     message.update(event=event,summary='Synthetic '+scope+' assessment',payload=payload,
         blockers=['Disputed observation remains unresolved'] if event=='blocked' else [])
+if not assignment.get('review_target'):
+    attach_environment_checks(message, assignment, [assignment['inputs'][0]])
 print(json.dumps(message,ensure_ascii=False))

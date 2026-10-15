@@ -412,7 +412,16 @@ def update(source: Path, project: Path, installed: Path, cli: str, lock: Session
             return {'status': 'pending_activation', 'changed': False}
         result = run([cli, 'extensions', 'update', 'qa-agent'], cwd=project, timeout=60)
         if result.returncode or not payload_matches(source, installed):
-            raise UpdateError('extension activation failed; pending intent retained, QA session was not started')
+            diagnostic = '\n'.join(part.strip() for part in (result.stderr, result.stdout) if part.strip())
+            message = 'extension activation failed; pending intent retained, QA session was not started'
+            if diagnostic:
+                message += '\nCLI output:\n' + diagnostic
+            if result.returncode and re.search(r'\b(?:uninstall|unistall)\b', diagnostic, re.IGNORECASE):
+                message += ('\nCLI requested uninstall: close active work, preserve the installed package '
+                            'and follow docs/EXTENSIONS.md (manual reinstall). '
+                            'qa-start does not uninstall automatically. Keep pending/recovery state; '
+                            'after reinstalling at the same path, rerun qa-start --update-only.')
+            raise UpdateError(message)
     installed_info = package_info(installed)
     if installed_info['package_version'] != pending['version']:
         raise UpdateError('installed version differs from pending update; QA session was not started')

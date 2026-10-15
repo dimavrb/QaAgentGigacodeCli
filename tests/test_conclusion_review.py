@@ -16,6 +16,7 @@ from conclusion_review import pointer, validate_checks
 from qa_contract import validate_message
 from task_acceptance import criteria_packet
 from self_review_fixtures import review_for
+from environment_fixtures import attach_environment_checks
 
 spec = importlib.util.spec_from_file_location('conclusion_demo', ROOT / 'examples/conclusion-review/build_demo.py')
 demo = importlib.util.module_from_spec(spec)
@@ -51,6 +52,7 @@ class ConclusionReviewTests(unittest.TestCase):
         message = dict(task_id=assignment['task_id'], request_id='author', agent=assignment['agent'], event='environment_ready',
             summary='Продуктовый запуск не выполнялся.', artifacts=[], blockers=[], self_review=review_for(),
             payload=dict(environment_id='fixture', product_version='fixture-v1', verified_capabilities=['Synthetic read'], limitations=['Synthetic only']))
+        attach_environment_checks(message, assignment, [assignment['inputs'][0]])
         exchange.atomic_write(assignment['result_path'], message)
         exchange.submit_result(self.state, 'author', None)
         exchange.review_result(self.state, 'author', 'Synthetic content accepted', True, None)

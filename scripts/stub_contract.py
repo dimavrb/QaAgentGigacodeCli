@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from analysis_contract import id_list
@@ -105,6 +105,8 @@ def validate_assignment(assignment):
         errors.append('assignment.provider must equal sbermock')
     if assignment.get('mode') not in ('configure_only','verify') or instant(assignment.get('issued_at')) is None:
         errors.append('assignment needs a valid mode and timezone-aware issued_at')
+    elif instant(assignment['issued_at']) > datetime.now(timezone.utc):
+        errors.append('assignment.issued_at cannot be in the future')
     assigned = id_list(assignment.get('scenario_ids'), 'assignment.scenario_ids', errors)
     cases = assignment.get('cases')
     if not assigned or not isinstance(cases, list) or not cases:
@@ -158,6 +160,24 @@ def validate_assignment(assignment):
     return errors
 
 
+def normalize_assignment(record):
+    """Freeze independent intent before the worker receives permission to act."""
+    if record['agent'] != 'qa-stub-builder':
+        raise ValueError('stub_assignment requires qa-stub-builder')
+    path = Path(record['stub_assignment']).resolve()
+    scope = read_stub_json(path)
+    errors = validate_assignment(scope)
+    if not errors:
+        if any(scope[key] != record[key] for key in ('task_id', 'request_id')):
+            errors.append('stub intent task/request differs from assignment')
+        if set(scope['scenario_ids']) != set(record['scenario_ids']):
+            errors.append('stub intent scenarios differ from assignment')
+    if errors:
+        raise ValueError('Stub preflight: ' + '; '.join(errors))
+    if str(path) not in record['inputs']:
+        record['inputs'].append(str(path))
+
+
 def validate_stub_plan(message, base: Path):
     """A draft is reviewable intent, not permission to mutate or readiness."""
     payload = message['payload']
@@ -198,7 +218,7 @@ def validate_stub_message(payload, event, assigned=None):
     return errors
 
 
-def validate_stub_bundle(message, base: Path, assignment=None):
+def validate_stub_bundle(message, base: Path, assignment=None, *, artifact_paths=None):
     """Validate against coordinator-owned intent, not expectations chosen by a probe."""
     if not isinstance(assignment, dict):
         return ['stub assignment is required; pass coordinator-owned --stub-assignment']
@@ -214,6 +234,7 @@ def validate_stub_bundle(message, base: Path, assignment=None):
     expected = {k: assignment.get(k) for k in CONTEXT}
     issued = instant(assignment.get('issued_at'))
     mode = assignment.get('mode')
+    upper = datetime.now(timezone.utc)
 
     def check_context(record, label):
         if type(record.get('schema_version')) is not int or record['schema_version'] != SCHEMA_VERSION:
@@ -242,6 +263,8 @@ def validate_stub_bundle(message, base: Path, assignment=None):
         try:
             path = local_path(ref)
             content = path.read_bytes()
+            if artifact_paths is not None:
+                artifact_paths.add(str(path.resolve()))
             actual_digest = hashlib.sha256(content).hexdigest()
             loaded_hashes[label] = actual_digest
             if digest is not None and actual_digest != digest:
@@ -269,9 +292,13 @@ def validate_stub_bundle(message, base: Path, assignment=None):
     prepared = instant(profile.get('prepared_at'))
     if prepared is None or (issued is not None and prepared < issued):
         errors.append('profile.prepared_at must not predate assignment')
+    elif prepared > upper:
+        errors.append('profile.prepared_at cannot be in the future')
     verification_started = instant(profile.get('verification_started_at'))
     if verification_started is None or prepared is not None and verification_started < prepared:
         errors.append('profile.verification_started_at must follow preparation and all mutations')
+    elif verification_started > upper:
+        errors.append('profile.verification_started_at cannot be in the future')
     declared = id_list(profile.get('scenario_ids'), 'profile.scenario_ids', errors)
     if declared != assigned:
         errors.append('profile must cover the full assigned scenario set')
@@ -313,6 +340,8 @@ def validate_stub_bundle(message, base: Path, assignment=None):
             errors.append(f'{case}.{key}: observed_at needs ISO time with timezone')
         elif minimum is not None and at < minimum:
             errors.append(f'{case}.{key}: observation predates the current preparation/readback')
+        elif at > upper:
+            errors.append(f'{case}.{key}: observation cannot be in the future')
         return record, at
 
     for case, intent in intents.items():
@@ -360,6 +389,8 @@ def validate_stub_bundle(message, base: Path, assignment=None):
             errors.append(f'{case}: resolved_at must follow current profile preparation')
         if resolved is not None and verification_started is not None and verification_started < resolved:
             errors.append(f'{case}: verification must start after all resolved mutations')
+        if resolved is not None and resolved > upper:
+            errors.append(f'{case}: resolved_at cannot be in the future')
         if operation == 'pending' and stub.get('resolved_at') is not None:
             errors.append(f'{case}: pending operation needs null resolved_at')
         cleanup = stub.get('cleanup')
@@ -429,7 +460,7 @@ def validate_stub_bundle(message, base: Path, assignment=None):
                 if type(window) is not int or window <= 0 or not isinstance(capture.get('position'), dict) or not capture['position']:
                     errors.append(f'{case}.{key}: Kafka needs planned window and captured position')
                 if (started is None or ended is None or ended < started or at is None or ended > at
-                        or read_at is not None and started < read_at):
+                        or read_at is not None and started < read_at or ended > upper):
                     errors.append(f'{case}.{key}: invalid or stale Kafka observation interval')
                 elif key == 'negative' and type(window) is int and (ended - started).total_seconds() * 1000 < window:
                     errors.append(f'{case}.{key}: Kafka absence needs the full planned observation window')

@@ -16,6 +16,7 @@ import execution_supervisor as supervisor
 import execution_worker as worker
 import task_exchange as exchange
 from qa_contract import ROLE_EVENTS, EVENT_FIELDS
+from environment_fixtures import bind_environment
 
 
 class ProjectionTests(unittest.TestCase):
@@ -188,6 +189,7 @@ class ManagedContextTests(unittest.TestCase):
         self.registry=self.root/'task.json';self.execution=self.root/'execution.json'
         exchange.init_task(self.registry,'QA-CONTEXT','Synthetic context')
         self.assignment=dict(task_id='QA-CONTEXT',request_id='env',agent='qa-test-env-configurator',stage='env',goal='Synthetic',acceptance_criteria=['Evidence'],stop_condition='Report',expected_artifact='QA JSON',result_path=str(self.root/'result.json'),inputs=[],depends_on=[])
+        bind_environment(self.assignment, self.root)
         self.plan=dict(schema_version=1,workspace=str(self.root),task_state=str(self.registry),scope_kind='synthetic',steps=[dict(step_id='env',assignment=self.assignment,max_wall_seconds=5)],adapter=dict(kind='gigacode',executable='synthetic-cli'))
         self.addCleanup(self.stop)
 
@@ -240,9 +242,11 @@ if '--help' in sys.argv:
 if '--version' in sys.argv: print('fixture-only');sys.exit(0)
 sys.path[:0]=[str(Path('''+repr(str(ROOT))+''')/'tests')]
 from self_review_fixtures import review_for
+from environment_fixtures import attach_environment_checks
 assignment=json.loads(Path(os.environ['QA_EXECUTION_HANDOFF']).read_text())['assignment']
 proof=Path(os.environ['QA_EXECUTION_HANDOFF']).parent/'proof.txt';proof.write_text('Synthetic only')
 message=dict(task_id=assignment['task_id'],request_id=assignment['request_id'],agent=assignment['agent'],event='environment_ready',summary='Fixture',artifacts=[str(proof)],blockers=[],self_review=review_for(),payload=dict(environment_id='fixture',product_version='v1',verified_capabilities=['Synthetic'],limitations=[]))
+attach_environment_checks(message,assignment,[str(proof)])
 print(json.dumps(dict(response=json.dumps(message),usage=dict(input_tokens=21,output_tokens=8))))
 ''')
         fake.chmod(0o700);self.plan['adapter']['executable']=str(fake)

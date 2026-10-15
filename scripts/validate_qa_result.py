@@ -27,21 +27,72 @@ def main() -> int:
     parser.add_argument("--scenario-id", action="append", dest="scenario_ids", help="Assigned scenario ID; repeat for feature results or environment/data readiness")
     parser.add_argument("--investigation-state", type=Path, help="Check state links, local evidence and recorded coordinator assessment for an investigation result")
     parser.add_argument("--stub-assignment", type=Path, help="Coordinator-owned sbermock scope and probe expectations; required for stub artifacts")
+    parser.add_argument('--stub-evidence-base', type=Path, help='Base for stub profile, verification and nested evidence; defaults to result directory')
     parser.add_argument('--impact-input', type=Path, help='Independent coordinator-owned scope for regression selection')
     parser.add_argument('--evidence-session-id', help='Coordinator session requiring a command-derived benchmark summary')
     parser.add_argument('--improvement-plan', type=Path, help='Independent expected reports/inputs and acceptance thresholds')
+    parser.add_argument('--environment-assignment', type=Path, help='Coordinator-owned complete admin-guide checklist')
+    parser.add_argument('--require-environment-checks', action='store_true', help='Require guide evidence for a new environment result')
+    parser.add_argument('--environment-evidence-base', type=Path, help='Base for relative guide evidence; defaults to result directory')
+    parser.add_argument('--data-assignment', type=Path, help='Coordinator-owned test-data properties, relations and validity window')
+    parser.add_argument('--require-data-checks', action='store_true', help='Require property observations for a new data result')
+    parser.add_argument('--data-evidence-base', type=Path, help='Base for relative data evidence; defaults to result directory')
+    parser.add_argument('--data-context-only', action='store_true', help='Audit expired observations for diagnosis, without readiness permission')
+    parser.add_argument('--jira-assignment', type=Path, help='Coordinator-approved Jira content and gateway scope')
+    parser.add_argument('--jira-task-state', type=Path, help='Registry containing the accepted confirmed investigation')
+    parser.add_argument('--jira-evidence-base', type=Path, help='Base for local publication evidence')
+    parser.add_argument('--require-jira-checks', action='store_true', help='Require publication evidence for a new Jira result')
     args = parser.parse_args()
     if args.agent == "qa-feature-tester" and not args.scenario_ids:
         parser.error("qa-feature-tester validation requires at least one --scenario-id from the assignment")
     if args.investigation_state and args.agent != "qa-defect-investigator":
         parser.error("--investigation-state is only for qa-defect-investigator")
-    if args.stub_assignment and args.agent != 'qa-stub-builder':
-        parser.error('--stub-assignment is only for qa-stub-builder')
+    if (args.stub_assignment or args.stub_evidence_base) and args.agent != 'qa-stub-builder':
+        parser.error('stub validation is only for qa-stub-builder')
     if args.impact_input and args.agent != 'qa-impact-analyst':
         parser.error('--impact-input is only for qa-impact-analyst')
+    if (args.environment_assignment or args.require_environment_checks) and args.agent != 'qa-test-env-configurator':
+        parser.error('environment validation is only for qa-test-env-configurator')
+    if (args.data_assignment or args.require_data_checks or args.data_evidence_base or args.data_context_only) and args.agent != 'qa-test-data-builder':
+        parser.error('data validation is only for qa-test-data-builder')
+    if (args.jira_assignment or args.jira_task_state or args.jira_evidence_base or args.require_jira_checks) and args.agent != 'qa-jira-defect-creator':
+        parser.error('Jira validation is only for qa-jira-defect-creator')
     try:
         message, _ = parse_message(args.input.read_text(encoding="utf-8"))
         errors = validate_message(message, args.task_id, args.request_id, args.agent, args.scenario_ids)
+        if args.jira_assignment or args.require_jira_checks or {'publication_artifact', 'jira_assignment_sha256'} & message['payload'].keys():
+            if not args.jira_assignment:
+                if message['event'] != 'blocked' or {'publication_artifact', 'jira_assignment_sha256'} & message['payload'].keys():
+                    errors.append('Jira publication requires --jira-assignment from coordinator')
+            elif not args.jira_task_state:
+                errors.append('Jira publication requires --jira-task-state with accepted investigation')
+            elif not errors:
+                from jira_publication import check_bundle as check_jira_bundle
+                check_jira_bundle(message, args.jira_evidence_base or args.input.parent,
+                                  args.jira_assignment, args.jira_task_state, args.input)
+        if args.data_assignment or args.require_data_checks or 'data_assignment_sha256' in message['payload']:
+            if not args.data_assignment:
+                if message['event'] != 'blocked' or 'data_assignment_sha256' in message['payload']:
+                    errors.append('data readiness requires --data-assignment from coordinator')
+            elif not errors:
+                from data_readiness import check_result as check_data_result, load_assignment as load_data_assignment
+                scope, _ = load_data_assignment(args.data_assignment)
+                if args.scenario_ids is not None and set(args.scenario_ids) != set(scope['scenario_ids']):
+                    errors.append('data assignment scenario IDs differ from CLI assignment')
+                else:
+                    check_data_result(message, args.data_evidence_base or args.input.parent, args.data_assignment,
+                                      args.input, context_only=args.data_context_only)
+        if args.environment_assignment or args.require_environment_checks or 'guide_checks' in message['payload']:
+            if not args.environment_assignment:
+                if message['event'] != 'blocked' or 'guide_checks' in message['payload']:
+                    errors.append('environment readiness requires --environment-assignment from coordinator')
+            elif not errors:
+                from environment_readiness import check_result, load_assignment
+                scope, _ = load_assignment(args.environment_assignment)
+                if args.scenario_ids is not None and set(args.scenario_ids) != set(scope.get('scenario_ids', [])):
+                    errors.append('environment assignment scenario IDs differ from CLI assignment')
+                else:
+                    check_result(message, args.environment_evidence_base or args.input.parent, args.environment_assignment, args.input)
         if args.improvement_plan or 'improvement_reports' in message['payload']:
             if not args.improvement_plan:
                 errors.append('improvement reports require independent --improvement-plan')
@@ -82,9 +133,9 @@ def main() -> int:
         if message['event'] in STUB_EVENTS and not args.stub_assignment:
             errors.append('stub artifacts require --stub-assignment from the coordinator')
         if not errors and message['event'] in STUB_EVENTS:
-            errors.extend(validate_stub_bundle(message, args.input.parent, read_stub_json(args.stub_assignment)))
+            errors.extend(validate_stub_bundle(message, args.stub_evidence_base or args.input.parent, read_stub_json(args.stub_assignment)))
         if not errors and message['event'] == STUB_PLAN_EVENT:
-            errors.extend(validate_stub_plan(message, args.input.parent))
+            errors.extend(validate_stub_plan(message, args.stub_evidence_base or args.input.parent))
         if not errors and args.investigation_state:
             state = json.loads(args.investigation_state.read_text(encoding='utf-8'))
             if message['event'] == 'investigation_complete':
@@ -135,6 +186,12 @@ def main() -> int:
             print(error)
         return 2
     print(f"valid {message['event']} from {args.agent}")
+    if args.jira_assignment:
+        print('Accepted investigation, duplicate assessments, action receipt and saved Jira fields checked; external evidence truth requires content review.')
+    if args.data_assignment:
+        print('Data requirements and observation links checked; coordinator must assess the evidence and actual availability.')
+        if args.data_context_only:
+            print('Context audit only: this command does not authorize ready handoff or execution.')
     if message['event'] in PLAN_EVENTS:
         print('Structure only: coordinator coverage and expected-behavior review is required; readiness does not mean acceptance or execution.')
     if message['event'] == 'analysis_ready':

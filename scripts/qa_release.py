@@ -12,7 +12,7 @@ import zipfile
 from package_agent import ROOT_FILES, TREES, SKIP, build_package
 from qa_project import package_info
 
-ENTRYPOINTS = ('qa_start', 'qa_project', 'qa_extension_mcp', 'qa_recover')
+ENTRYPOINTS = ('qa_start', 'qa_project', 'qa_project_agents', 'qa_extension_mcp', 'qa_recover')
 
 
 def ci_passed(commit):
@@ -61,7 +61,7 @@ def unpack(archive, destination):
 
 def validate(root):
     info = package_info(root)
-    if (info['agent_count'] < 14 or info['skill_count'] < 5 or
+    if (info['agent_count'] < 14 or info['skill_count'] < 6 or
             not {'qa', 'qa:init', 'qa:doctor', 'qa:tasks', 'qa:resume'} <= set(info['commands'])):
         raise ValueError('candidate is missing required agents, skills or commands')
     scripts = root / 'scripts'
@@ -99,7 +99,7 @@ def probe(root, runner):
     # Fresh interpreter, no project cwd, no inherited PYTHONPATH, no bytecode writes.
     code = ('import sys,json,io,contextlib; from pathlib import Path; '
             'sys.path.insert(0,str(Path(sys.argv[1])/"scripts")); '
-            'import qa_start,qa_extension_mcp,qa_recover; '
+            'import qa_start,qa_project_agents,qa_extension_mcp,qa_recover; '
             'from qa_project import package_info; root=Path(sys.argv[1]); '
             'sys.argv=[str(root/"scripts/qa_start.py"),"--help"];\n'
             'with contextlib.redirect_stdout(io.StringIO()):\n'

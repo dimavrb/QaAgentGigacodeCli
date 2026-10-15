@@ -10,6 +10,7 @@ import time
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / 'scripts'), str(ROOT / 'tests')]
 from self_review_fixtures import review_for
+from environment_fixtures import attach_environment_checks
 from action_gateway import ActionGateway, MCPClient
 
 parser = argparse.ArgumentParser()
@@ -44,7 +45,9 @@ if args.mode in ('external', 'external-unknown-success'):
         client.close()
 proof = Path(os.environ['QA_EXECUTION_HANDOFF']).parent / 'proof.txt'
 proof.write_text('Synthetic evidence; no real environment check')
-print(json.dumps(dict(task_id=assignment['task_id'], request_id=assignment['request_id'], agent=assignment['agent'],
+message = dict(task_id=assignment['task_id'], request_id=assignment['request_id'], agent=assignment['agent'],
     event='environment_ready', summary='Synthetic fixture result', artifacts=[str(proof)], blockers=[],
     self_review=review_for(), payload=dict(environment_id='fixture', product_version='fixture-1',
-                                         verified_capabilities=['Synthetic protocol only'], limitations=[]))))
+                                         verified_capabilities=['Synthetic protocol only'], limitations=[]))
+attach_environment_checks(message, assignment, [str(proof)])
+print(json.dumps(message))

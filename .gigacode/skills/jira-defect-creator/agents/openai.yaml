@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jira Defect Creator"
+  short_description: "Дефекты Jira с проверкой дублей и подтверждением"
+  default_prompt: "Используй $jira-defect-creator для подготовки дефекта и сводного чек-листа перед записью в Jira."

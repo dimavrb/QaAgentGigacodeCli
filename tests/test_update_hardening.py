@@ -51,11 +51,38 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertEqual(c.base, c.git(c.source, 'rev-parse', 'HEAD'))
         self.assertIsNone(updater.load_state(c.state)['pending'])
 
-    def helper(self, command='rollback', env=None):
+    def helper(self, command='rollback', env=None, process_rows=''):
         c = self.case
-        return subprocess.run([sys.executable, '-I', str(c.state / 'qa-recover.pyz'),
+        # Exercise the real zipapp with a deterministic host-process observation.
+        # Other tests/CLI sessions on the machine must not select the wrong gate.
+        program = (
+            'import runpy, subprocess, sys\n'
+            'original_run = subprocess.run\n'
+            'def run(arguments, *args, **kwargs):\n'
+            "    if arguments == ['ps', '-axo', 'pid=,args=']:\n"
+            f"        return subprocess.CompletedProcess(arguments, 0, {process_rows!r}, '')\n"
+            '    return original_run(arguments, *args, **kwargs)\n'
+            'subprocess.run = run\n'
+            'archive = sys.argv.pop(1)\n'
+            "runpy.run_path(archive, run_name='__main__')\n"
+        )
+        return subprocess.run([sys.executable, '-I', '-c', program, str(c.state / 'qa-recover.pyz'),
                                '--state-dir', str(c.state), command], cwd=c.source, env=env,
                               capture_output=True, text=True, timeout=20)
+
+    def test_recovery_helper_refuses_observed_active_cli_without_changing_files(self):
+        c = self.case; target = c.publish(); c.apply()
+        def snapshot(root):
+            return {str(path.relative_to(root)): path.read_bytes() for path in root.rglob('*')
+                    if path.is_file() and '.git' not in path.relative_to(root).parts}
+        source_before = snapshot(c.source)
+        installed_before = snapshot(c.installed)
+        refused = self.helper(process_rows='4242 /fixture/bin/gigacode --mode qa\n')
+        self.assertEqual(2, refused.returncode)
+        self.assertIn('close active GIGACODE work', refused.stderr)
+        self.assertEqual(target, c.git(c.source, 'rev-parse', 'HEAD'))
+        self.assertEqual(source_before, snapshot(c.source))
+        self.assertEqual(installed_before, snapshot(c.installed))
 
     def test_independent_helper_works_when_the_mutable_launcher_cannot_import(self):
         c = self.case

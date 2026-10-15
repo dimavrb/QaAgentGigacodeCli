@@ -18,6 +18,7 @@ from pathlib import Path
 from qa_contract import ROLE_EVENTS, parse_message
 from task_acceptance import criteria_packet, check_completion
 from agent_trace import registry_context
+from content_review import check_blocking_reviews
 
 
 def now():
@@ -203,6 +204,47 @@ def assignment_record(source, base):
     record['inputs'] = [local_path(i, base) for i in id_list(source.get('inputs', []), 'inputs')]
     record['result_path'] = local_path(record['result_path'], base)
     record['artifact_base'] = local_path(source.get('artifact_base', str(Path(record['result_path']).parent)), base)
+    if record['agent'] == 'qa-stub-builder':
+        record['stub_evidence_required'] = True
+    if record['agent'] == 'qa-jira-defect-creator':
+        record['jira_checks_required'] = True
+    if 'jira_assignment' in record:
+        if record['agent'] != 'qa-jira-defect-creator':
+            raise ValueError('jira_assignment requires qa-jira-defect-creator')
+        from jira_publication import load_assignment as load_jira_assignment
+        record['jira_assignment'] = local_path(record['jira_assignment'], base)
+        scope, paths = load_jira_assignment(record['jira_assignment'])
+        if scope['task_id'] != record['task_id']:
+            raise ValueError('Jira publication scope belongs to another task')
+        for source_path in sorted(paths):
+            if source_path not in record['inputs']:
+                record['inputs'].append(source_path)
+    if record['agent'] == 'qa-test-data-builder':
+        record['data_checks_required'] = True
+    if 'data_assignment' in record:
+        if record['agent'] != 'qa-test-data-builder':
+            raise ValueError('data_assignment requires qa-test-data-builder')
+        from data_readiness import load_assignment as load_data_assignment
+        record['data_assignment'] = local_path(record['data_assignment'], base)
+        scope, paths = load_data_assignment(record['data_assignment'])
+        if scope['task_id'] != record['task_id'] or set(scope['scenario_ids']) != set(record['scenario_ids']):
+            raise ValueError('Data requirements differ from task/scenario assignment')
+        for source_path in sorted(paths):
+            if source_path not in record['inputs']:
+                record['inputs'].append(source_path)
+    if record['agent'] == 'qa-test-env-configurator':
+        record['environment_checks_required'] = True
+    if 'environment_assignment' in record:
+        if record['agent'] != 'qa-test-env-configurator':
+            raise ValueError('environment_assignment requires qa-test-env-configurator')
+        from environment_readiness import load_assignment
+        record['environment_assignment'] = local_path(record['environment_assignment'], base)
+        scope, paths = load_assignment(record['environment_assignment'])
+        if scope['task_id'] != record['task_id'] or set(scope.get('scenario_ids', [])) != set(record['scenario_ids']):
+            raise ValueError('Environment guide scope differs from task/scenario assignment')
+        for source_path in sorted(paths):
+            if source_path not in record['inputs']:
+                record['inputs'].append(source_path)
     if 'plan_partition' in record:
         from partition_test_plan import normalize_assignment
         normalize_assignment(record, base)
@@ -218,6 +260,9 @@ def assignment_record(source, base):
     for key in ('investigation_state', 'stub_assignment'):
         if key in record:
             record[key] = local_path(record[key], base)
+    if 'stub_assignment' in record:
+        from stub_contract import normalize_assignment as normalize_stub_assignment
+        normalize_stub_assignment(record)
     if 'impact_input' in record:
         if record['agent'] != 'qa-impact-analyst':
             raise ValueError('impact_input requires qa-impact-analyst')
@@ -266,7 +311,7 @@ def protected_paths(path, state):
     return paths
 
 
-def inspect_result(assignment):
+def inspect_result(assignment, *, data_context_only=False):
     """Use the full existing CLI validator; retain hashes of local handoff inputs."""
     path = Path(assignment['result_path'])
     message, _ = parse_message(path.read_text(encoding='utf-8'))
@@ -276,7 +321,38 @@ def inspect_result(assignment):
     refs = set(refs)
     payload = message.get('payload', {})
     combination_paths = set()
+    stub_paths = set()
+    if assignment.get('stub_evidence_required') and assignment.get('stub_assignment'):
+        from stub_contract import STUB_EVENTS, read_stub_json, validate_stub_bundle
+        if message.get('event') in STUB_EVENTS:
+            errors = validate_stub_bundle(message, Path(assignment['artifact_base']),
+                read_stub_json(Path(assignment['stub_assignment'])), artifact_paths=stub_paths)
+            if errors:
+                raise ValueError('Результат заглушек не прошёл проверку:\n' + '\n'.join(errors))
     if isinstance(payload, dict):
+        if assignment.get('jira_checks_required') or {'publication_artifact', 'jira_assignment_sha256'} & payload.keys():
+            scope = assignment.get('jira_assignment')
+            if not scope and (message['event'] != 'blocked' or {'publication_artifact', 'jira_assignment_sha256'} & payload.keys()):
+                raise ValueError('Jira publication requires coordinator jira_assignment')
+            if scope:
+                from jira_publication import check_bundle as check_jira_bundle
+                refs.update(check_jira_bundle(message, assignment['artifact_base'], scope,
+                                             assignment['jira_task_state'], path))
+        if assignment.get('data_checks_required') or 'data_assignment_sha256' in payload:
+            scope = assignment.get('data_assignment')
+            if not scope and message['event'] != 'blocked':
+                raise ValueError('Data readiness requires coordinator data_assignment')
+            if scope:
+                from data_readiness import check_result as check_data_result
+                refs.update(check_data_result(message, assignment['artifact_base'], scope, path,
+                                              context_only=data_context_only))
+        if assignment.get('environment_checks_required') or 'guide_checks' in payload:
+            scope = assignment.get('environment_assignment')
+            if not scope and message['event'] != 'blocked':
+                raise ValueError('Environment readiness requires coordinator environment_assignment')
+            if scope:
+                from environment_readiness import check_result
+                refs.update(check_result(message, assignment['artifact_base'], scope, path))
         if assignment.get('improvement_plan'):
             from improvement_acceptance import check_bundle
             bundle = check_bundle(message, path.parent, assignment['improvement_plan'])
@@ -338,6 +414,7 @@ def inspect_result(assignment):
                     refs.add(check['receipt'])
     paths = {str(path.resolve())}
     paths.update(assignment['inputs'])
+    paths.update(stub_paths)
     remote = []
     for ref in refs:
         ref = required(ref, 'artifacts')
@@ -360,6 +437,26 @@ def inspect_result(assignment):
                '--request-id', assignment['request_id'], '--agent', assignment['agent']]
     if assignment.get('self_review_required'):
         command.append('--require-self-review')
+    if assignment.get('stub_evidence_required'):
+        command.extend(('--stub-evidence-base', assignment['artifact_base']))
+    if assignment.get('jira_checks_required'):
+        command.append('--require-jira-checks')
+    if assignment.get('jira_assignment'):
+        command.extend(('--jira-assignment', assignment['jira_assignment'],
+                        '--jira-task-state', assignment['jira_task_state'],
+                        '--jira-evidence-base', assignment['artifact_base']))
+    if assignment.get('data_checks_required'):
+        command.append('--require-data-checks')
+    if assignment.get('data_assignment'):
+        command.extend(('--data-assignment', assignment['data_assignment'],
+                        '--data-evidence-base', assignment['artifact_base']))
+        if data_context_only:
+            command.append('--data-context-only')
+    if assignment.get('environment_checks_required'):
+        command.append('--require-environment-checks')
+    if assignment.get('environment_assignment'):
+        command.extend(('--environment-assignment', assignment['environment_assignment']))
+        command.extend(('--environment-evidence-base', assignment['artifact_base']))
     if assignment.get('evidence_session_id'):
         command.extend(('--evidence-session-id', assignment['evidence_session_id']))
     for sid in assignment['scenario_ids']:
@@ -392,9 +489,19 @@ def inspect_result(assignment):
     current, _ = parse_message(path.read_text(encoding='utf-8'))
     if current != message:
         raise ValueError('Отчёт изменился во время проверки')
+    ready = readiness(message)
+    if assignment['agent'] == 'qa-jira-defect-creator':
+        ready['jira_publication_verified'] = bool(assignment.get('jira_assignment'))
+    if assignment['agent'] == 'qa-test-env-configurator':
+        ready['admin_guide_verified'] = bool(assignment.get('environment_assignment'))
+    if assignment['agent'] == 'qa-test-data-builder':
+        ready['data_properties_verified'] = bool(assignment.get('data_assignment'))
+        if assignment.get('data_assignment'):
+            from data_readiness import load_assignment as load_data_assignment
+            ready['data_expires_at'] = load_data_assignment(assignment['data_assignment'])[0]['expires_at']
     return dict(path=str(path.resolve()), event=message['event'], summary=message['summary'],
                 artifact_hashes=after, remote_artifacts=sorted(remote), validated_at=now(),
-                readiness=readiness(message), current_revision=payload.get('current_revision'),
+                readiness=ready, current_revision=payload.get('current_revision'),
                 reviewed_revision=payload.get('reviewed_revision'))
 
 
@@ -417,6 +524,16 @@ def readiness(message):
 
 def check_readiness(source, scenario_ids, consumer_agent):
     kind, ready = source['event'], source['readiness']
+    if kind in ('jira_defect_created', 'jira_duplicate_found') and not ready.get('jira_publication_verified'):
+        raise ValueError('Публикация Jira не подтверждена; используйте context или новое назначение')
+    if kind in ('data_ready', 'data_partial') and not ready.get('data_properties_verified'):
+        raise ValueError('Свойства данных не подтверждены по назначению; используйте context или новое назначение')
+    if kind in ('data_ready', 'data_partial') and ready.get('data_expires_at'):
+        from data_readiness import timestamp
+        if datetime.now(timezone.utc) >= timestamp(ready['data_expires_at']):
+            raise ValueError('Data validity window expired; use context or a new assignment')
+    if kind in ('environment_ready', 'environment_partial') and not ready.get('admin_guide_verified'):
+        raise ValueError('Источник стенда не подтверждён по админгайду; используйте context или новое назначение')
     if kind == 'ready_for_review' and consumer_agent == 'qa-autotest-reviewer':
         return
     if kind == 'stubs_configured' and consumer_agent == 'qa-stub-builder':
@@ -431,8 +548,12 @@ def check_readiness(source, scenario_ids, consumer_agent):
 
 
 def assignment_sources(state, assignment):
-    return check_sources(state, assignment['depends_on'], scenario_ids=assignment.get('scenario_ids', []),
+    sources = check_sources(state, assignment['depends_on'], scenario_ids=assignment.get('scenario_ids', []),
                          modes=assignment.get('dependency_modes', {}), consumer_agent=assignment['agent'])
+    if assignment.get('jira_assignment'):
+        from jira_publication import check_source, load_assignment as load_jira_assignment
+        check_source(state, assignment, load_jira_assignment(assignment['jira_assignment'])[0])
+    return sources
 
 
 def check_sources(state, dependencies, checked=None, visiting=None, scenario_ids=None, modes=None, consumer_agent=None):
@@ -444,6 +565,7 @@ def check_sources(state, dependencies, checked=None, visiting=None, scenario_ids
             raise ValueError('Обнаружен цикл зависимостей назначений')
         if rid in checked:
             if (modes or {}).get(rid, 'ready') == 'ready':
+                check_blocking_reviews(state, rid)
                 check_readiness(checked[rid], scenario_ids, consumer_agent)
             sources.append(checked[rid])
             continue
@@ -457,7 +579,7 @@ def check_sources(state, dependencies, checked=None, visiting=None, scenario_ids
         check_sources(state, assignment['depends_on'], checked, visiting,
                       assignment.get('scenario_ids', []), assignment.get('dependency_modes', {}), assignment['agent'])
         visiting.remove(rid)
-        current = inspect_result(row['assignment'])
+        current = inspect_result(row['assignment'], data_context_only=(modes or {}).get(rid, 'ready') == 'context')
         if current['artifact_hashes'] != row['result']['artifact_hashes']:
             raise ValueError(f'{rid}: принятые артефакты изменились; требуется новое назначение и ревью')
         source = dict(request_id=rid, agent=row['assignment']['agent'],
@@ -467,6 +589,7 @@ def check_sources(state, dependencies, checked=None, visiting=None, scenario_ids
                             readiness=current['readiness'],
                             decision=row['review']['decision'])
         if (modes or {}).get(rid, 'ready') == 'ready':
+            check_blocking_reviews(state, rid)
             check_readiness(source, scenario_ids, consumer_agent)
         checked[rid] = source
         sources.append(source)
@@ -475,6 +598,8 @@ def check_sources(state, dependencies, checked=None, visiting=None, scenario_ids
 
 def assign(path, source, base, expected_revision):
     record = assignment_record(source, base)
+    if record['agent'] == 'qa-jira-defect-creator':
+        record['jira_task_state'] = str(Path(path).resolve())
     def operation(state):
         if state['execution_status'] == 'completed':
             raise ValueError('Задача уже завершена')
@@ -602,6 +727,8 @@ def review_result(path, rid, decision, passed, expected_revision):
         result = inspect_result(row['assignment'])
         if result['artifact_hashes'] != row['result']['artifact_hashes']:
             raise ValueError('Результат изменился после регистрации; требуется новое назначение')
+        if passed:
+            check_blocking_reviews(state, rid)
         row.update(status='accepted' if passed else 'changes_requested',
                    review=dict(status='passed' if passed else 'changes_requested', decision=decision, reviewed_at=now()))
         return event(state, 'result_accepted' if passed else 'changes_requested', request_id=rid)
@@ -613,6 +740,11 @@ def review_result(path, rid, decision, passed, expected_revision):
         if (row['assignment']['agent'] == 'qa-test-plan-writer' and row['result']['event'] == 'plan_ready'
                 and row['assignment'].get('plan_partition', {}).get('mode') != 'group'):
             from build_test_plan_html import publish
+            presentation = publish(path, rid)
+            accepted['revision'] = presentation['revision']
+            accepted['result'] = dict(accepted['result'], presentation=presentation['result'])
+        elif row['assignment']['agent'] == 'qa-test-env-configurator':
+            from build_environment_html import publish
             presentation = publish(path, rid)
             accepted['revision'] = presentation['revision']
             accepted['result'] = dict(accepted['result'], presentation=presentation['result'])
@@ -766,12 +898,16 @@ def check_assessment(state, definition, source, recheck=False):
             raise ValueError('Критерий требует принятых результатов')
         if item['criterion_id'] not in row['assignment'].get('criterion_ids', []):
             raise ValueError('Назначение не связано с этим критерием')
+        if item['status'] == 'verified':
+            check_blocking_reviews(state, rid)
         check_inputs(row)
         check_answers(state, row['assignment']['questionnaire_ids'])
         assignment_sources(state, row['assignment'])
         current = inspect_result(row['assignment'])
         if current['artifact_hashes'] != row['result']['artifact_hashes']:
             raise ValueError('Доказательства принятого результата изменились')
+        if item['status'] == 'verified' and current['event'] in ('jira_defect_created', 'jira_duplicate_found'):
+            check_readiness(current, [], None)
         hashes.update(current['artifact_hashes'])
         results[rid] = current
     selected = {}
@@ -808,13 +944,13 @@ def check_assessment(state, definition, source, recheck=False):
             raise ValueError('Ревью не подтверждает принятый результат автора')
     item.update(request_ids=rids, evidence=list(selected), evidence_hashes=selected,
                 result_hashes={rid: results[rid]['artifact_hashes'] for rid in rids})
+    selected_authors = None
     if item['status'] == 'verified' and definition.get('kind') == 'scenario_execution':
         from content_review import check_execution_criterion
-        execution_authors = check_execution_criterion(definition, source, state, results)
+        selected_authors = check_execution_criterion(definition, source, state, results)
         if 'scenario_sources' in source:
             item['scenario_sources'] = copy.deepcopy(source['scenario_sources'])
     combination_bundles = None
-    selected_authors = execution_authors if definition.get('kind') == 'scenario_execution' else None
     if item['status'] == 'verified' and definition.get('kind') == 'combination_coverage':
         from combination_coverage import check_criterion
         combination_bundles = check_criterion(definition, state, results)
@@ -883,12 +1019,15 @@ def finish_task(path, outcome, decision, expected_revision):
         if not latest or any(r['status'] != 'accepted' for r in latest.values()):
             raise ValueError('Последние результаты каждого этапа должны быть приняты')
         for row in latest.values():
+            check_blocking_reviews(state, row['assignment']['request_id'])
             check_inputs(row)
             check_answers(state, row['assignment']['questionnaire_ids'])
             assignment_sources(state, row['assignment'])
             result = inspect_result(row['assignment'])
             if result['artifact_hashes'] != row['result']['artifact_hashes']:
                 raise ValueError('Принятый результат изменился')
+            if result['event'] in ('jira_defect_created', 'jira_duplicate_found'):
+                check_readiness(result, [], None)
             if result['event'] in ('blocked', 'coverage_ready', 'changes_requested') or result['event'].startswith('needs_') or result['event'].endswith('_partial'):
                 raise ValueError('Последний результат этапа содержит незавершённые условия')
             if result['event'] == 'ready_for_review':

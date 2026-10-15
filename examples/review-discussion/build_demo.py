@@ -5,8 +5,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / 'scripts'))
+sys.path[:0] = [str(ROOT / 'scripts'), str(ROOT / 'tests')]
 import task_exchange as exchange
+from environment_fixtures import bind_environment
 
 
 def build(output, mode='resolve'):
@@ -24,6 +25,7 @@ def build(output, mode='resolve'):
         goal='Report synthetic read probe and product limitations',acceptance_criteria=['Do not claim an unperformed product run'],
         criterion_ids=['C-CONCLUSION'],stop_condition='Return QA JSON',expected_artifact='QA JSON',result_path=str(output/'author.json'),
         inputs=[str(facts)],depends_on=[])
+    bind_environment(assignment, output, 'fixture', 'fixture-v1')
     plan = dict(schema_version=1,discussion=dict(max_rounds=2),max_corrections=1,max_active_seconds=45,
         author_plan=dict(schema_version=1,task_state=str(state),workspace=str(output),scope_kind='synthetic',adapter=adapter,
                          steps=[dict(step_id='author',assignment=assignment,max_wall_seconds=5)]),

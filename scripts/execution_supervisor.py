@@ -499,10 +499,14 @@ def tick_locked(path):
             source = registry['requests'][row['checkpoint']['request_id']]
             if source['status'] != 'accepted':
                 raise ValueError('Checkpoint acceptance changed; coordinator review required')
+            exchange.check_blocking_reviews(registry, row['checkpoint']['request_id'])
             exchange.check_inputs(source)
             exchange.assignment_sources(registry, source['assignment'])
             exchange.check_answers(registry, source['assignment']['questionnaire_ids'])
-            if exchange.inspect_result(source['assignment'])['artifact_hashes'] != row['checkpoint']['artifact_hashes']:
+            current = exchange.inspect_result(source['assignment'])
+            if current['event'] in ('jira_defect_created', 'jira_duplicate_found'):
+                exchange.check_readiness(current, [], None)
+            if current['artifact_hashes'] != row['checkpoint']['artifact_hashes']:
                 raise ValueError('Checkpoint evidence changed; coordinator review required')
             continue
         if row['status'] in ('blocked', 'needs_reconciliation', 'cancelled'):
@@ -609,7 +613,10 @@ def tick_locked(path):
                 registry = exchange.read_state(registry_path)
                 request = registry['requests'][attempt['request_id']]
             if request['status'] == 'accepted':
+                exchange.check_blocking_reviews(registry, attempt['request_id'])
                 current = exchange.inspect_result(request['assignment'])
+                if current['event'] in ('jira_defect_created', 'jira_duplicate_found'):
+                    exchange.check_readiness(current, [], None)
                 if current['artifact_hashes'] != request['result']['artifact_hashes']:
                     raise ValueError('Accepted result changed before checkpoint')
                 def checkpoint(value):

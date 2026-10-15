@@ -117,6 +117,11 @@ def presentation_reference(value):
         return {'status': 'needs_attention', 'error': text(value['error'])}
     if not re.fullmatch(r'[a-f0-9]{64}', value.get('sha256', '')):
         raise ValueError('invalid HTML presentation hash')
+    if value.get('kind') == 'environment_report':
+        if not re.fullmatch(r'[a-f0-9]{64}', value.get('source_sha256', '')):
+            raise ValueError('invalid environment report source hash')
+        return {'status': 'ready', 'path': text(value['path']), 'sha256': value['sha256'],
+                'kind': 'environment_report', 'source_sha256': value['source_sha256']}
     return {'status': 'ready', 'path': text(value['path']), 'sha256': value['sha256'],
             'plan_revision': text(value['plan_revision'])}
 

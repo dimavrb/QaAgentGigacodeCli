@@ -13,7 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import task_exchange as exchange
 from questionnaire import create_server, normalize_packet, save_response
-from self_review_fixtures import review_for
+from self_review_fixtures import review_for, publish_content_review
+from environment_fixtures import bind_environment, attach_environment_checks
 
 
 class TaskExchangeTests(unittest.TestCase):
@@ -38,14 +39,17 @@ class TaskExchangeTests(unittest.TestCase):
                     result_path=f'{rid}.json', inputs=['requirements.md'], depends_on=dependencies or [])
 
     def report(self, rid='env-1'):
-        return dict(task_id='QA-1', request_id=rid, agent='qa-test-env-configurator',
+        report = dict(task_id='QA-1', request_id=rid, agent='qa-test-env-configurator',
                     event='environment_ready', summary='Учебный стенд готов', artifacts=['evidence.txt'], blockers=[],
                     self_review=review_for(),
                     payload=dict(environment_id='synthetic', product_version='fixture-1',
                                  verified_capabilities=['Учебный API доступен'], limitations=[]))
+        assignment = exchange.read_state(self.state)['requests'][rid]['assignment']
+        return attach_environment_checks(report, assignment, [str(self.root / 'evidence.txt')])
 
     def register(self, rid='env-1', dependencies=None):
-        return exchange.assign(self.state, self.assignment(rid, dependencies), self.root, self.revision)
+        assignment = bind_environment(self.assignment(rid, dependencies), self.root, 'synthetic', 'fixture-1')
+        return exchange.assign(self.state, assignment, self.root, self.revision)
 
     def dispatch(self, rid='env-1'):
         return exchange.prepare_handoff(self.state, rid, self.revision)['result']
@@ -88,6 +92,89 @@ class TaskExchangeTests(unittest.TestCase):
             exchange.start_request(self.state, 'env-1', 'cli-task-7', 'wrong', self.revision)
         exchange.start_request(self.state, 'env-1', 'cli-task-7', handoff['delivery_id'], self.revision)
         self.assertEqual('cli-task-7', exchange.read_state(self.state)['requests']['env-1']['owner_task_id'])
+
+    def test_blocking_review_prevents_acceptance_even_after_a_passing_vote(self):
+        self.publish()
+        publish_content_review(self.state, 'env-1')
+        publish_content_review(self.state, 'env-1', 'passing-review', 'review_passed')
+        before = self.state.read_bytes()
+        with self.assertRaisesRegex(ValueError, 'Unresolved blocking'):
+            exchange.review_result(self.state, 'env-1', 'Attempt to accept unchanged author', True, self.revision)
+        self.assertEqual(before, self.state.read_bytes())
+        exchange.review_result(self.state, 'env-1', 'Return blocking findings to author', False, self.revision)
+        self.assertEqual('changes_requested', exchange.read_state(self.state)['requests']['env-1']['status'])
+
+    def test_late_blocking_review_prevents_ready_handoffs_but_allows_context(self):
+        self.publish(accept=True)
+        self.register('next', ['env-1'])
+        publish_content_review(self.state, 'env-1')
+        before = self.state.read_bytes()
+        for action in (
+                lambda: self.dispatch('next'),
+                lambda: self.register('another', ['env-1'])):
+            with self.assertRaisesRegex(ValueError, 'Unresolved blocking'):
+                action()
+            self.assertEqual(before, self.state.read_bytes())
+        diagnostic = self.assignment('diagnostic', ['env-1'])
+        diagnostic['dependency_modes'] = {'env-1': 'context'}
+        bind_environment(diagnostic, self.root, 'synthetic', 'fixture-1')
+        exchange.assign(self.state, diagnostic, self.root, self.revision)
+        self.dispatch('diagnostic')
+
+    def test_late_blocking_review_is_rechecked_at_start_submit_and_review(self):
+        self.publish(accept=True)
+        for rid in ('prepared', 'running', 'reported'):
+            self.register(rid, ['env-1'])
+            handoff = self.dispatch(rid)
+            if rid != 'prepared':
+                exchange.start_request(self.state, rid, 'owner-' + rid, handoff['delivery_id'], self.revision)
+                (self.root / f'{rid}.json').write_text(json.dumps(self.report(rid)))
+                if rid == 'reported':
+                    exchange.submit_result(self.state, rid, self.revision)
+        publish_content_review(self.state, 'env-1')
+        before = self.state.read_bytes()
+        for action in (
+                lambda: exchange.start_request(self.state, 'prepared', 'owner-prepared',
+                    exchange.read_state(self.state)['requests']['prepared']['delivery_id'], self.revision),
+                lambda: exchange.submit_result(self.state, 'running', self.revision),
+                lambda: exchange.review_result(self.state, 'reported', 'Stale source', True, self.revision)):
+            with self.assertRaisesRegex(ValueError, 'Unresolved blocking'):
+                action()
+            self.assertEqual(before, self.state.read_bytes())
+
+    def test_corrected_author_and_new_review_allow_ready_handoff(self):
+        self.publish(accept=True)
+        publish_content_review(self.state, 'env-1')
+        self.publish('env-2')
+        publish_content_review(self.state, 'env-2', 'corrected-review', 'review_passed')
+        exchange.review_result(self.state, 'env-2', 'Corrected author checked', True, self.revision)
+        self.register('next', ['env-2'])
+        self.assertEqual('env-2', self.dispatch('next')['sources'][0]['request_id'])
+
+    def test_finish_rechecks_late_blocking_review(self):
+        self.publish(accept=True)
+        publish_content_review(self.state, 'env-1')
+        publish_content_review(self.state, 'env-1', 'passing-review', 'review_passed')
+        # Keep the original author as the latest result of its stage, while the
+        # passing review replaces the review stage. No criteria gate can mask this check.
+        before = self.state.read_bytes()
+        with self.assertRaisesRegex(ValueError, 'Unresolved blocking'):
+            exchange.finish_task(self.state, 'passed', 'Cannot hide a late rejection', self.revision)
+        self.assertEqual(before, self.state.read_bytes())
+
+    def test_cached_context_source_does_not_bypass_ready_gate(self):
+        self.publish(accept=True)
+        diagnostic = self.assignment('diagnostic', ['env-1'])
+        diagnostic['dependency_modes'] = {'env-1': 'context'}
+        bind_environment(diagnostic, self.root, 'synthetic', 'fixture-1')
+        exchange.assign(self.state, diagnostic, self.root, self.revision)
+        self.dispatch('diagnostic')
+        (self.root / 'diagnostic.json').write_text(json.dumps(self.report('diagnostic')))
+        exchange.submit_result(self.state, 'diagnostic', self.revision)
+        exchange.review_result(self.state, 'diagnostic', 'Context processed', True, self.revision)
+        publish_content_review(self.state, 'env-1')
+        with self.assertRaisesRegex(ValueError, 'Unresolved blocking'):
+            self.register('next', ['diagnostic', 'env-1'])
 
     def test_unprepared_missing_duplicate_and_stale_assignments_rejected(self):
         self.register()
@@ -135,6 +222,7 @@ class TaskExchangeTests(unittest.TestCase):
         self.dispatch()
         report = self.report()
         report.update(event='blocked', blockers=['Учебный доступ недоступен'], self_review=review_for(limited=True))
+        attach_environment_checks(report, exchange.read_state(self.state)['requests']['env-1']['assignment'], [])
         (self.root / 'env-1.json').write_text(json.dumps(report))
         exchange.submit_result(self.state, 'env-1', self.revision)
         row = exchange.read_state(self.state)['requests']['env-1']
@@ -309,6 +397,10 @@ class TaskExchangeTests(unittest.TestCase):
         assignment['scenario_ids'] = ['TC-001']
         exchange.assign(self.state, assignment, self.root, self.revision)
         self.dispatch()
+        # Retain structural audit coverage for a registry written before guide checks.
+        state = exchange.read_state(self.state)
+        del state['requests']['env-1']['assignment']['environment_checks_required']
+        exchange.atomic_write(self.state, state)
         report = json.loads((ROOT / 'examples/handoffs/environment.json').read_text())
         report.update(task_id='QA-1', request_id='env-1')
         (self.root / 'env-1.json').write_text(json.dumps(report))

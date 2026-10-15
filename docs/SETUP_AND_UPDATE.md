@@ -1,15 +1,30 @@
 # Настройка и обновление QA-пакета
 
-Текущий профиль — **GIGACODE CLI, 2.3.2**. Первая установка — [INSTALL.md](INSTALL.md),
+Текущий профиль — **GIGACODE CLI, 2.3.11**. Первая установка — [INSTALL.md](INSTALL.md),
 перенос в приложение — [IMPORT_INTO_APP.md](IMPORT_INTO_APP.md), переход с предыдущей версии —
-[UPGRADE_2.3.2.md](UPGRADE_2.3.2.md). Прежние релизные документы доступны в истории Git; текущая поставка содержит
+[UPGRADE_2.3.11.md](UPGRADE_2.3.11.md). Прежние релизные документы доступны в истории Git; текущая поставка содержит
 инструкции только для GIGACODE и общего CLI-контракта.
+
+Подключение только к одному проекту через его `.gigacode` описано в
+[IMPORT_INTO_APP.md](IMPORT_INTO_APP.md#подключение-только-в-одном-проекте).
+Для него обновляйте исходный пакет и адаптированные проектные файлы вместе;
+native updater ниже предназначен для установки менеджером расширений.
 
 Для extension установите локальный Git clone и настройте `qa-start` по
 [AUTO_UPDATE.md](AUTO_UPDATE.md): проверка версии и обновление выполняются
 до открытия новой сессии. Контекст приложения сохраняется. Для ручного режима
 сначала обновите локальный clone, затем установленное расширение штатным менеджером
 CLI и повторите `/qa:init`, `/qa:doctor`. Подробности — [EXTENSIONS.md](EXTENSIONS.md).
+Если `extensions update qa-agent` требует uninstall, выполните ручную
+переустановку по [EXTENSIONS.md](EXTENSIONS.md#ручная-переустановка-если-update-требует-uninstall):
+после резервной копии и остановки сессий — `gigacode extensions uninstall qa-agent`,
+затем `gigacode extensions install /absolute/path/to/qa-agent` из исходного clone.
+При pending используйте уже подготовленный commit и сохраните журнал восстановления.
+Управляемые проектные роли синхронизируются через `qa-start`; для прямого запуска
+GIGACODE выполните preview и `qa_project_agents.py --apply` отдельно.
+Неизменённые роли обновляются автоматически, адаптации сохраняются; конфликт
+одной роли не мешает остальным, но блокирует новую QA-сессию до рассмотрения.
+История, принятие адаптаций и миграция старых копий — [PROJECT_AGENT_UPDATES.md](PROJECT_AGENT_UPDATES.md).
 
 Обновляйте весь пакет: общие инструкции, роли, skills, команды, валидаторы и
 примеры. Не заменяйте только файлы ролей. Сохраните предыдущий ZIP/commit и
@@ -41,7 +56,7 @@ gigacode
 Для ZIP проверьте checksum и manifest:
 
 ```bash
-python3 scripts/package_agent.py --verify /absolute/path/qa-agent-2.3.2.zip
+python3 scripts/package_agent.py --verify /absolute/path/qa-agent-2.3.11.zip
 ```
 
 Для отката восстановите пакет и согласованные адаптации из предыдущего commit/ZIP.

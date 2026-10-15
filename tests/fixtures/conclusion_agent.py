@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / 'scripts'), str(ROOT / 'tests')]
 from self_review_fixtures import review_for
+from environment_fixtures import attach_environment_checks
 from action_gateway import pointer
 
 parser = argparse.ArgumentParser()
@@ -46,4 +47,6 @@ else:
                      review_scope=target['scope'], reviewed_revision=target['request_id'], checks=checks,
                      findings=findings, limitations=['Synthetic adapter, no CLI or live product measurement'],
                      conclusion_checks=[] if mode=='generic' else conclusion_checks))
+if not assignment.get('review_target'):
+    attach_environment_checks(message, assignment, [assignment['inputs'][0]])
 print(json.dumps(message,ensure_ascii=False))

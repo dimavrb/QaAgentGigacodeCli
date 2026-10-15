@@ -20,6 +20,8 @@ import task_exchange as exchange
 from action_gateway import ActionGateway, MCPClient
 import failure_journal
 import execution_worker
+from self_review_fixtures import publish_content_review
+from environment_fixtures import bind_environment
 from questionnaire import normalize_packet, save_response
 
 AGENT = ROOT / 'tests/fixtures/managed_agent.py'
@@ -64,6 +66,7 @@ class ManagedExecutionTests(unittest.TestCase):
                 goal='Synthetic task', acceptance_criteria=['Synthetic evidence available'], stop_condition='Return report',
                 expected_artifact='QA JSON', result_path=str(self.root/f'result-{index+1}.json'), inputs=[],
                 depends_on=[f'env-{index}'] if index else [])
+            bind_environment(assignment, self.root, 'fixture', 'fixture-1')
             rows.append(dict(step_id=f'env-{index+1}', assignment=assignment, max_attempts=3, retry_safe=True,
                 retry_on=['transient','timeout','process_lost'], retry_backoff_seconds=0, max_wall_seconds=5))
         value = dict(schema_version=1, task_state=str(self.registry), workspace=str(self.root), scope_kind='synthetic',
@@ -96,6 +99,33 @@ class ManagedExecutionTests(unittest.TestCase):
         self.wait(lambda state:state['status']=='completed')
         for _ in range(3):supervisor.tick(self.execution)
         self.assertEqual('1',self.counter.read_text())
+
+    def test_late_blocking_review_prevents_checkpoint_and_next_worker(self):
+        self.init(self.plan(steps=2))
+        self.wait(lambda state: state['status'] == 'awaiting_review')
+        self.accept('env-1')
+        publish_content_review(self.registry, 'env-1')
+        with self.assertRaisesRegex(ValueError, 'Unresolved blocking'):
+            supervisor.tick(self.execution)
+        value = supervisor.read(self.execution)
+        self.assertIsNone(value['steps']['env-1']['checkpoint'])
+        self.assertEqual([], value['steps']['env-2']['attempts'])
+        self.assertEqual('1', self.counter.read_text())
+
+    def test_late_blocking_review_invalidates_saved_checkpoint(self):
+        plan = self.plan(steps=2)
+        plan['steps'][1]['assignment']['depends_on'] = []
+        self.init(plan)
+        self.wait(lambda state: state['status'] == 'awaiting_review')
+        self.accept('env-1')
+        value = self.wait(lambda state: state['steps']['env-1']['checkpoint'] is not None)
+        publish_content_review(self.registry, 'env-1')
+        with self.assertRaisesRegex(ValueError, 'Unresolved blocking'):
+            supervisor.tick(self.execution)
+        self.assertEqual(value['steps']['env-1']['checkpoint'],
+                         supervisor.read(self.execution)['steps']['env-1']['checkpoint'])
+        self.assertEqual([], supervisor.read(self.execution)['steps']['env-2']['attempts'])
+        self.assertEqual('1', self.counter.read_text())
 
     def test_concurrent_registry_notification_does_not_invalidate_report_and_trace_ids_match(self):
         self.init(self.plan())

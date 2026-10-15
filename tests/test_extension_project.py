@@ -24,6 +24,7 @@ class ExtensionProjectTests(unittest.TestCase):
         for name in ('gigacode-extension.json', 'VERSION', 'GIGACODE_EXTENSION.md',
                      'docs/COORDINATOR.md', 'docs/EXTENSION_RUNTIME.md',
                      'scripts/qa_project.py', 'scripts/qa_extension_mcp.py', 'scripts/qa_tasks.py', 'scripts/qa_files.py',
+                     'scripts/qa_agent_state.py', 'scripts/qa_project_agents.py',
                      'examples/qa-only/APP_CONTEXT.template.md'):
             target = self.package / name
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -39,7 +40,7 @@ class ExtensionProjectTests(unittest.TestCase):
     def test_manifest_and_resources_are_consistent(self):
         info = package_info(self.package)
         self.assertEqual(14, info['agent_count'])
-        self.assertEqual(5, info['skill_count'])
+        self.assertEqual(6, info['skill_count'])
         self.assertEqual({'qa', 'qa:init', 'qa:doctor', 'qa:tasks', 'qa:resume'}, set(info['commands']))
         self.assertEqual(str(self.package), info['package_root'])
         self.assertEqual((ROOT / 'VERSION').read_text().strip(), info['package_version'])

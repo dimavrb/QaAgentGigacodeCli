@@ -241,12 +241,46 @@ class AutoUpdateTests(unittest.TestCase):
                 return subprocess.CompletedProcess(arguments, 1, '', 'fixture failure')
             return original_native(arguments, **kwargs)
         with patch.object(self, 'native_cli', side_effect=failed):
-            with self.assertRaisesRegex(updater.UpdateError, 'activation failed'):
+            with self.assertRaisesRegex(updater.UpdateError, 'activation failed') as error:
                 self.apply()
+        self.assertIn('fixture failure', str(error.exception))
         self.assertEqual(target, updater.load_state(self.state)['pending']['commit'])
         self.assertEqual(self.base_version, (self.installed / 'VERSION').read_text().strip())
         self.assertEqual('updated', self.apply()['status'])
         self.assertIsNone(updater.load_state(self.state)['pending'])
+        self.assert_project_preserved()
+
+    def test_uninstall_request_preserves_installation_and_reconciles_manual_reinstall(self):
+        target = self.publish()
+        original_native = self.native_cli
+        for stdout, stderr in [('', 'Please uninstall qa-agent first'),
+                               ('Run UNINSTALL before installing the new version', ''),
+                               ('', 'unistall qa-agent first')]:
+            with self.subTest(stdout=stdout, stderr=stderr):
+                def failed(arguments, **kwargs):
+                    if arguments == ['fake-gigacode', 'extensions', 'update', 'qa-agent']:
+                        self.calls.append(arguments[1:])
+                        return subprocess.CompletedProcess(arguments, 1, stdout, stderr)
+                    return original_native(arguments, **kwargs)
+                with patch.object(self, 'native_cli', side_effect=failed):
+                    with self.assertRaisesRegex(updater.UpdateError, 'CLI requested uninstall') as error:
+                        self.apply()
+                self.assertIn(stdout or stderr, str(error.exception))
+                self.assertIn('qa-start --update-only', str(error.exception))
+                self.assertEqual(target, updater.load_state(self.state)['pending']['commit'])
+                self.assertTrue((self.state / 'recovery.json').is_file())
+                recovery = json.loads((self.state / 'recovery.json').read_text())
+                self.assertTrue((self.state / recovery['snapshot']).is_file())
+                self.assertEqual(self.base_version, (self.installed / 'VERSION').read_text().strip())
+                self.assert_project_preserved()
+        self.assertTrue(all(call[:2] == ['extensions', 'update'] for call in self.calls))
+        shutil.rmtree(self.installed)  # Simulate manual uninstall/install at the same path.
+        copy_package(self.source, self.installed)
+        calls_before_resume = list(self.calls)
+        self.assertEqual('updated', self.apply()['status'])
+        self.assertEqual(calls_before_resume, self.calls)
+        self.assertIsNone(updater.load_state(self.state)['pending'])
+        self.assertTrue(updater.payload_matches(self.source, self.installed))
         self.assert_project_preserved()
 
     def test_crash_before_source_merge_is_recoverable(self):
@@ -351,6 +385,10 @@ class AutoUpdateTests(unittest.TestCase):
         self.assertFalse(destination.exists())
 
     def test_launcher_reexecutes_new_code_refreshes_binding_and_forwards_cli_args(self):
+        from qa_project_agents import install_agents
+        install_agents(self.project, self.installed, apply=True)
+        role = self.author / '.gigacode/agents/qa-analyst.md'
+        role.write_text(role.read_text() + '\nUpdated role fixture\n')
         self.publish()
         # A local Git shim redirects only fetch; production origin remains the approved URL.
         self.git(self.source, 'remote', 'set-url', 'origin', updater.REMOTE)
@@ -381,6 +419,8 @@ class AutoUpdateTests(unittest.TestCase):
         self.assertIn('"status": "reloaded"', result.stderr)
         self.assertEqual(self.next_version, json.loads((self.project / CONFIG).read_text())['package_version'])
         self.assertEqual(['--model', 'fixture'], json.loads((self.project / 'cli-call.json').read_text()))
+        self.assertEqual((self.installed / '.gigacode/agents/qa-analyst.md').read_bytes(),
+                         (self.project / '.gigacode/agents/qa-analyst.md').read_bytes())
         self.assert_project_preserved()
 
 

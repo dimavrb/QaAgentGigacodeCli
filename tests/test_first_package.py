@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import agent_trace
 import task_exchange as exchange
+from environment_fixtures import bind_environment, attach_environment_checks
 from export_task_trace import export_records
 from self_review_fixtures import review_for
 from run_agent_benchmark import run_benchmark, terminal_response, NEEDED_FLAGS
@@ -45,6 +46,7 @@ class AcceptanceTests(unittest.TestCase):
             assignment['criterion_ids'] = criterion_ids
         if scenarios:
             assignment['scenario_ids'] = scenarios
+        bind_environment(assignment, self.root)
         exchange.assign(self.state, assignment, self.root, self.revision)
         exchange.prepare_handoff(self.state, rid, self.revision)
         report = dict(task_id='QA-1', request_id=rid, agent='qa-test-env-configurator',
@@ -53,6 +55,7 @@ class AcceptanceTests(unittest.TestCase):
                       payload=dict(environment_id='fixture', product_version='v1', verified_capabilities=['API'], limitations=[]))
         if kind == 'environment_partial':
             report['payload'].update(ready_scenarios=[scenarios[0]], blocked_scenarios=scenarios[1:])
+        attach_environment_checks(report, assignment, [str(self.root / 'proof.txt')])
         (self.root / (rid + '.json')).write_text(json.dumps(report))
         exchange.submit_result(self.state, rid, self.revision)
         exchange.review_result(self.state, rid, 'Доказательства прочитаны', True, self.revision)
