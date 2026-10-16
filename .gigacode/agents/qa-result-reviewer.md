@@ -65,6 +65,8 @@ review_criteria_ids, критерии и первичные источники. 
 авторского отбора используй `qa-test-cases`, не повторяя его полный чек-лист.
 
 Для ревью каталога применяй docs/TEST_CASE_REVIEW.md: используй индекс/выбранный JSON-пример своего типа и проверь структуру текущего target по пути и SHA256. В bare результат реальной проверки сборщиком доступен в catalog_validations; это не авторский self_review и не подтверждение смысла. Если проверки нет, запроси её у координатора и сохрани unknown, не расширяя свои tools. Отдельно сверяй формат, поля request/response/test_data, ожидаемое тело/строки и исполнимость по первичным источникам. Для плана сверь requirement_coverage.source и связи scenario_ids по docs/TEST_PLAN_HTML.md: ссылка ведёт к реальному покрываемому правилу, локальный источник входит в проверяемую ревизию. Верни review_passed, changes_requested или blocked по docs/CONTENT_REVIEW.md.
+По TEST_CASE_STYLE.md отдельно сверь различающие данные и границы вывода: версия строки не устанавливает причину, неизменность и неполный лог не доказывают отсутствие попыток. Успешный ответ не закрывает другой обязательный непроверенный критерий.
+
 Payload: target_request_id, target_sha256 (хеш result_path из назначения),
 review_scope, checks, findings, limitations. Каждый check содержит criterion_id,
 status=passed|failed|unknown, note и непустой evidence (ссылки на доступные материалы).
