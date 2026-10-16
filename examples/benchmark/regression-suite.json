@@ -1,0 +1,427 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "stored-value",
+      "prompt_file": "prompts/regression/stored-value.md",
+      "checks": [
+        {
+          "check_id": "discriminator",
+          "expectation": "Допустимый сохранённый ключ отличается от независимой формулы текущих данных; совпадающий исходный ключ признан слабым различающим набором."
+        },
+        {
+          "check_id": "response",
+          "expectation": "TC-STORED проверяет сохранённый ключ и актуальную фамилию раздельно; корреляция evtId, числовой ноль и 90 секунд от ack сохранены."
+        },
+        {
+          "check_id": "baseline",
+          "expectation": "Есть commit подготовки, базовые значения и свежий контроль после wait_processed; вывод ограничен зафиксированным обновлением строки по R-3."
+        },
+        {
+          "check_id": "handoff",
+          "expectation": "Каталог с TC-STORED исполним по данным задания, без выдуманного SQL и факта запуска; restore_record идёт после сохранения доказательств."
+        }
+      ],
+      "agent": "qa-test-plan-writer",
+      "test_type": "kafka"
+    },
+    {
+      "case_id": "observation-review",
+      "prompt_file": "prompts/regression/observation-review.md",
+      "checks": [
+        {
+          "check_id": "attempt",
+          "expectation": "Неизменные xmin/ctid не приняты как доказательство отсутствия попытки UPDATE, включая ноль строк и rollback."
+        },
+        {
+          "check_id": "audit",
+          "expectation": "Неполный лог с началом обработки не закрывает R-2; запрошены подходящие полнота, интервал и корреляция наблюдателя."
+        },
+        {
+          "check_id": "verdict",
+          "expectation": "Подтверждённый R-1 сохранён, R-2 остаётся непроверенным; общий passed отклонён блокирующим замечанием с boolean blocking."
+        },
+        {
+          "check_id": "cause",
+          "expectation": "Смена ctid не объявлена доказательством пересчёта конкретного поля; причина и собственный прогон не выдуманы."
+        }
+      ],
+      "agent": "qa-result-reviewer",
+      "test_type": "kafka"
+    },
+    {
+      "case_id": "fresh-snapshot",
+      "prompt_file": "prompts/regression/fresh-snapshot.md",
+      "checks": [
+        {
+          "check_id": "freshness",
+          "expectation": "Старый REPEATABLE READ не используется для обнаружения чужого commit; выбран свежий подтверждённый primary-снимок без мешающей блокировки."
+        },
+        {
+          "check_id": "completion",
+          "expectation": "Контроль TC-SNAPSHOT следует подтверждённому завершению нужного эффекта, а broker ack не объявлен commit обработчика."
+        },
+        {
+          "check_id": "deadline",
+          "expectation": "Пять секунд от ack и UUID корреляции сохранены; ожидание не заменено перепубликацией или молчаливым продлением."
+        },
+        {
+          "check_id": "oracle",
+          "expectation": "Ожидается ровно одна строка с нужным evt_id и целым amount=7; нулевая выдача старого снимка не выдана за доказанный дефект."
+        }
+      ],
+      "agent": "qa-test-plan-writer",
+      "test_type": "kafka"
+    },
+    {
+      "case_id": "concise-rewrite",
+      "prompt_file": "prompts/regression/concise-rewrite.md",
+      "checks": [
+        {
+          "check_id": "style",
+          "expectation": "TC-SEARCH остаётся короткой естественной инструкцией с объектами и порядком, без канцелярских повторов или обязательного числа слов."
+        },
+        {
+          "check_id": "criteria",
+          "expectation": "Сохранены все проверки TC-SEARCH: parentID, числовой statusCode, ключ без нормализации и три ФИО из BASE; общая фраза их не заменяет."
+        },
+        {
+          "check_id": "timing",
+          "expectation": "Сохранены свежие offsets до публикации, новый UUID и срок 90 секунд именно от broker ack."
+        },
+        {
+          "check_id": "data",
+          "expectation": "Сообщение, переменные и снимок доступны в предусловиях/Тест-дата; сравниваются декодированные поля, нет новых внутренних запретов и заявления исполнения."
+        }
+      ],
+      "agent": "qa-test-plan-writer",
+      "test_type": "kafka"
+    },
+    {
+      "case_id": "good-case",
+      "prompt_file": "prompts/regression/good-case.md",
+      "checks": [
+        {
+          "check_id": "accept",
+          "expectation": "TC-PAID признан содержательно достаточным для данного R-1; не создано искусственное changes_requested из-за краткости."
+        },
+        {
+          "check_id": "composition",
+          "expectation": "Учтено, что ровно A-11 отличает и пустую, и лишнюю выдачу на заданной смешанной фикстуре."
+        },
+        {
+          "check_id": "scope",
+          "expectation": "Не навязаны БД, xmin/ctid, аудит, SLA или дополнительный кейс без нового критерия."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Положительное содержательное решение не выдано за запуск TC-PAID или процедурное принятие реального файла."
+        }
+      ],
+      "agent": "qa-result-reviewer",
+      "test_type": "ui"
+    },
+    {
+      "case_id": "fragment-contract",
+      "prompt_file": "prompts/regression/fragment-contract.md",
+      "checks": [
+        {
+          "check_id": "contract",
+          "expectation": "Для TC-LABEL сохранён контрактный contains(\"AB\") с типом string и регистром; точное AB-17 не навязано."
+        },
+        {
+          "check_id": "fragment",
+          "expectation": "Дополнительные JSON-поля допустимы, scope=fragment не превращён в exact без источника."
+        },
+        {
+          "check_id": "examples",
+          "expectation": "Положительный контрпример может иметь другой хвост label, отрицательный нарушает заданную подстроку/тип/регистр; они различают правило R-1."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Образец AB-17 не выдан за полную спецификацию или выполненный ответ продукта; новая нормализация не придумана."
+        }
+      ],
+      "agent": "qa-result-reviewer",
+      "test_type": "api"
+    },
+    {
+      "case_id": "interrupted-result",
+      "prompt_file": "prompts/regression/interrupted-result.md",
+      "checks": [
+        {
+          "check_id": "recover",
+          "expectation": "plan-A признан оборванным с сохранённой работой; сначала используются observations/cases для переоформления, без автоматического полного повторного прогона."
+        },
+        {
+          "check_id": "live",
+          "expectation": "review-B не признан сданным; тому же живому владельцу дано точное продолжение только записать и сдать из имеющегося, без новых проверок."
+        },
+        {
+          "check_id": "load",
+          "expectation": "Три тяжёлые ветки после 429 не запускаются вместе; соблюдены общий слот, лёгкая работа координатора и приёмка предыдущей цепочки."
+        },
+        {
+          "check_id": "ownership",
+          "expectation": "result-C не принимается от имени failed session-A; нужны фактическая атрибуция и корректное назначение, а mtime не удостоверяет автора."
+        }
+      ],
+      "instruction_paths": [
+        "docs/COORDINATION_SAFETY.md"
+      ]
+    },
+    {
+      "case_id": "frozen-input",
+      "prompt_file": "prompts/regression/frozen-input.md",
+      "checks": [
+        {
+          "check_id": "intersection",
+          "expectation": "review-7 не выпускается на каталог активного plan-6; вычислены пересечение inputs/выходов и запрет собственного output как input."
+        },
+        {
+          "check_id": "snapshot",
+          "expectation": "Сначала завершение/приёмка plan-6, затем новый rev-snapshot точных байтов с совпавшими проверенными SHA256 и новое назначение."
+        },
+        {
+          "check_id": "paths",
+          "expectation": "До assign исправлены result_path, artifact_base и requirement_coverage.source в абсолютные пути с точным источником; старые хеши не пересчитаны."
+        },
+        {
+          "check_id": "evidence",
+          "expectation": "Живой task.json внутри .qa-agent-state отвергнут как evidence; требуется новый неизменяемый снимок/наблюдение вне реестра без заявления выполненных проверок."
+        }
+      ],
+      "instruction_paths": [
+        "docs/COORDINATION_SAFETY.md"
+      ]
+    },
+    {
+      "case_id": "questionnaire-modes",
+      "prompt_file": "prompts/regression/questionnaire-modes.md",
+      "checks": [
+        {
+          "check_id": "build",
+          "expectation": "build не объявлен писателем answers.json, HTTP-сервером или командой с --answers; объяснён ручной канал file HTML."
+        },
+        {
+          "check_id": "comment",
+          "expectation": "overall_comment прочитан и учтён при десяти deferred; это не отсутствие полезного пользовательского ответа."
+        },
+        {
+          "check_id": "pending",
+          "expectation": "Отложенные Q-1..Q-10 не закрыты автоматически, независимые кейсы продолжаются с сохранённой зависимостью журнала."
+        },
+        {
+          "check_id": "serve",
+          "expectation": "Для следующего автоматического сохранения выбраны serve и wait; текущий ручной файл идёт через проверку/apply-answers без выдуманного POST или автопробуждения."
+        }
+      ],
+      "instruction_paths": [
+        "docs/COORDINATION_SAFETY.md",
+        "docs/QUESTIONS_UI.md"
+      ]
+    },
+    {
+      "case_id": "review-contract",
+      "prompt_file": "prompts/regression/review-contract.md",
+      "checks": [
+        {
+          "check_id": "blocking",
+          "expectation": "blocking исправлен в JSON boolean; changes_requested содержит хотя бы одно обоснованное blocking=true, не строку и не пустой список."
+        },
+        {
+          "check_id": "self-review",
+          "expectation": "Восстановлены self_review.schema_version, четыре проверки с id scope/evidence/consistency/role, note и рисками; evidence привязан к assignment:/acceptance_criteria и фактическому основанию, не только summary."
+        },
+        {
+          "check_id": "tools",
+          "expectation": "Не предложен обход через python3, подстановку или неразрешённый Git; роль использует доступный writer для сдачи результата."
+        },
+        {
+          "check_id": "receipt",
+          "expectation": "Валидация и SHA256 поручены координатору после сохранения; отсутствие shell/квитанции отражено в payload.limitations без фиктивного успеха."
+        }
+      ],
+      "agent": "qa-result-reviewer",
+      "instruction_paths": [
+        "docs/COORDINATION_SAFETY.md"
+      ]
+    },
+    {
+      "case_id": "environment-partial",
+      "agent": "qa-test-env-configurator",
+      "prompt_file": "prompts/regression/environment-partial.md",
+      "checks": [
+        {
+          "check_id": "readiness",
+          "expectation": "Стенд E2/v2 не объявлен environment_ready: A-2 blocked, миграция A-3 на v2 не подтверждена записью v1."
+        },
+        {
+          "check_id": "scope",
+          "expectation": "Все три пункта A-1..A-3 сохранены в матрице; доступный A-1 не скрывает остальные обязательные условия."
+        },
+        {
+          "check_id": "subset",
+          "expectation": "TC-HTTP выделен как готовое подмножество, TC-ASYNC остаётся заблокированным с конкретными недостающими условиями."
+        },
+        {
+          "check_id": "continuation",
+          "expectation": "Следующий запрос адресован A-2/A-3 и текущему v2; нет безусловного повтора уже принятого A-1 или выдуманных новых проверок."
+        }
+      ],
+      "instruction_paths": [
+        "docs/ENVIRONMENT_READINESS.md"
+      ]
+    },
+    {
+      "case_id": "defect-cause",
+      "agent": "qa-defect-investigator",
+      "prompt_file": "prompts/regression/defect-cause.md",
+      "checks": [
+        {
+          "check_id": "fact",
+          "expectation": "Нарушение R-1 на build=v2 подтверждено E-1: buyer получил 200 с users вместо 403 без данных."
+        },
+        {
+          "check_id": "cause",
+          "expectation": "Отсутствие проверки в v1 остаётся гипотезой причины v2 из-за неизвестного соответствия deployment; причина не названа установленной."
+        },
+        {
+          "check_id": "independence",
+          "expectation": "Неизвестный код v2 не отменяет подтверждённый runtime-факт; подтверждение нарушения не заблокировано только отсутствием причины."
+        },
+        {
+          "check_id": "evidence",
+          "expectation": "Сохранены req-17, роль, версия и E-1/E-2; предложен адресный запрос соответствия кода без утверждения нового прогона."
+        }
+      ],
+      "instruction_paths": [
+        "docs/DEFECT_VERIFICATION.md"
+      ]
+    },
+    {
+      "case_id": "automation-oracle",
+      "agent": "qa-test-automation",
+      "prompt_file": "prompts/regression/automation-oracle.md",
+      "checks": [
+        {
+          "check_id": "fixture",
+          "expectation": "Код TC-PAID использует заданные seed_orders/list_orders и все три различающих заказа, без выдуманного setup API."
+        },
+        {
+          "check_id": "assert",
+          "expectation": "Assert проверяет точный состав A-11 и исключает дубли/чужие/неоплаченные строки; один all или len>0 не принят как достаточный."
+        },
+        {
+          "check_id": "mutation",
+          "expectation": "Мысленные пустая выдача, чужой B-13 и примесь A-12 обнаруживаются конкретным assert, а не ошибкой подготовки."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Тест привязан к R-1/TC-PAID; выполнение, успешная мутация и включение в реальный CI не выдуманы."
+        }
+      ]
+    },
+    {
+      "case_id": "jira-uncertain",
+      "agent": "qa-jira-defect-creator",
+      "prompt_file": "prompts/regression/jira-uncertain.md",
+      "checks": [
+        {
+          "check_id": "uncertain",
+          "expectation": "Timeout create pub-17 сохранён как неопределённая публикация; отсутствие найденной задачи в неполном поиске не доказало отсутствие записи."
+        },
+        {
+          "check_id": "readback",
+          "expectation": "До нового create требуется надёжный readback/сверка по ключу pub-17; совпавшая задача используется после проверки, а не дублируется."
+        },
+        {
+          "check_id": "permission",
+          "expectation": "Запрет новой записи по uncertain receipt соблюдён, условий безопасного разрешённого повтора не выдумано."
+        },
+        {
+          "check_id": "honesty",
+          "expectation": "Нет выдуманного ticket URL, факта повторного вызова или объявления ошибки Jira дефектом приложения."
+        }
+      ],
+      "instruction_paths": [
+        "docs/JIRA_PUBLICATION.md"
+      ]
+    },
+    {
+      "case_id": "report-matrix",
+      "agent": "qa-test-report-writer",
+      "prompt_file": "prompts/regression/report-matrix.md",
+      "checks": [
+        {
+          "check_id": "matrix",
+          "expectation": "Отчёт сохраняет все четыре комбинации B-SEARCH/B-PAY × off/on на v2, не сворачивая их в один успешный сценарий."
+        },
+        {
+          "check_id": "statuses",
+          "expectation": "TC-S/off passed, TC-S/on not_run, обе TC-P blocked по E-P; сохранён единый блокер без выдуманных прогонов."
+        },
+        {
+          "check_id": "history",
+          "expectation": "Все passed на v1 не перенесены автоматически на v2 при неизвестном влиянии изменения сборки."
+        },
+        {
+          "check_id": "readiness",
+          "expectation": "Pending review и готовый документ не выданы за успешное тестирование или готовый релиз; ограничения перечислены явно."
+        }
+      ],
+      "instruction_paths": [
+        "docs/TEST_REPORTING.md"
+      ]
+    },
+    {
+      "case_id": "impact-fallback",
+      "agent": "qa-impact-analyst",
+      "prompt_file": "prompts/regression/impact-fallback.md",
+      "checks": [
+        {
+          "check_id": "fallback",
+          "expectation": "Неполная история и неизвестный C-2 ведут к полному fallback каталога TC-A/TC-B/TC-C, а не только TC-A."
+        },
+        {
+          "check_id": "unknown",
+          "expectation": "TC-B сохранён как требующий review и включён в запуск; обязательный TC-C не исключён."
+        },
+        {
+          "check_id": "gap",
+          "expectation": "Пробел нового правила C-2 сохранён: полный прогон имеющихся трёх ID не объявлен полным покрытием нового требования."
+        },
+        {
+          "check_id": "cost",
+          "expectation": "При неизвестной длительности TC-B общий срок и ускорение не вычислены; известная сумма не названа wall-clock или измеренной экономией."
+        }
+      ]
+    },
+    {
+      "case_id": "conclusion-evidence",
+      "agent": "qa-conclusion-reviewer",
+      "prompt_file": "prompts/regression/conclusion-evidence.md",
+      "checks": [
+        {
+          "check_id": "measurement",
+          "expectation": "Подтверждено только уменьшение переданного текста 100000→50000 символов; из null не выведены токены или стоимость."
+        },
+        {
+          "check_id": "quality",
+          "expectation": "Captured и not_checked не подтверждают сохранение качества; fixture не выдана за живую модель."
+        },
+        {
+          "check_id": "429",
+          "expectation": "Устранение 429 не принято без соответствующего воспроизведения/замеров и не выведено из уменьшения system.md."
+        },
+        {
+          "check_id": "plan",
+          "expectation": "Запрошены сопоставимые живые условия, повторные задания и независимая оценка всех критериев с реальным usage; экономия оценивается только при сохранённом качестве."
+        }
+      ],
+      "instruction_paths": [
+        "docs/CONCLUSION_REVIEW.md"
+      ]
+    }
+  ]
+}

@@ -109,9 +109,41 @@ class QuestionnaireTests(unittest.TestCase):
             run = subprocess.run(args + ['build', '--input', source, '--output', str(path / 'form.html')], capture_output=True, text=True)
             self.assertEqual(0, run.returncode, run.stdout + run.stderr)
             self.assertTrue((path / 'form.html').read_text().startswith('<!doctype html>'))
+            self.assertEqual(['form.html'], sorted(item.name for item in path.iterdir()))
             (path / 'answers.json').write_text(json.dumps(self.response))
             run = subprocess.run(args + ['validate', '--input', source, '--answers', str(path / 'answers.json')], capture_output=True, text=True)
             self.assertEqual(0, run.returncode, run.stdout + run.stderr)
+
+    def test_build_rejects_answers_destination_without_touching_existing_answers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            answers = path / 'answers.json'
+            answers.write_text('Existing response must survive')
+            run = subprocess.run([sys.executable, str(ROOT / 'scripts/questionnaire.py'),
+                                  'build', '--input', str(ROOT / 'examples/questions/questions.json'),
+                                  '--output', str(path / 'form.html'), '--answers', str(answers)],
+                                 capture_output=True, text=True, timeout=5)
+            self.assertEqual(2, run.returncode)
+            self.assertIn('unrecognized arguments: --answers', run.stderr)
+            self.assertEqual('Existing response must survive', answers.read_text())
+            self.assertFalse((path / 'form.html').exists())
+
+    def test_all_deferred_answers_preserve_overall_comment_when_saved_and_reloaded(self):
+        source = copy.deepcopy(self.source)
+        source['questions'] = [dict(source['questions'][0], question_id=f'Q-{i}') for i in range(1, 11)]
+        packet = normalize_packet(source)
+        response = {key: packet[key] for key in
+                    ('schema_version', 'task_id', 'request_id', 'questionnaire_id', 'revision')}
+        response.update(answers=[dict(question_id=f'Q-{i}', status='deferred',
+                                     selected_options=[], text='') for i in range(1, 11)],
+                        overall_comment='Продолжайте независимые кейсы; доступ будет завтра')
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'answers.json'
+            save_response(path, packet, response)
+            saved = validate_response(packet, json.loads(path.read_text()))
+            self.assertEqual(response, saved)
+            self.assertEqual(10, len(saved['answers']))
+            self.assertTrue(all(answer['status'] == 'deferred' for answer in saved['answers']))
 
     def test_http_submission_origin_token_validation_and_restore(self):
         with tempfile.TemporaryDirectory() as directory:

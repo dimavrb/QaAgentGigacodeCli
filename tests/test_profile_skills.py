@@ -212,9 +212,13 @@ else: print(json.dumps({'response': 'Synthetic captured output, not a model answ
     def test_changed_common_instruction_rejected_even_with_consistent_hashes(self):
         directory = self.root / 'candidate/trial-1/empty'
         snapshots = json.loads((directory / 'instructions.json').read_text())
-        snapshots['docs/COORDINATOR.md'] += '\nChanged common guidance'
+        snapshots['docs/SELF_REVIEW.md'] += '\nChanged common guidance'
         save(directory / 'instructions.json', snapshots)
-        system = (directory / 'system.md').read_text().replace('Источник инструкций: docs/TEST_DESIGN.md', 'Changed common guidance\n\nИсточник инструкций: docs/TEST_DESIGN.md')
+        original = (directory / 'system.md').read_text()
+        marker = '\n\nУсловия этого учебного reasoning benchmark'
+        override = marker + original.split(marker, 1)[1]
+        system = '\n\n'.join(f'Источник инструкций: {name}\n{text}'
+                               for name, text in snapshots.items()) + override
         (directory / 'system.md').write_text(system)
         self.edit('candidate/trial-1/empty/execution.json', lambda v: v.update(instructions_sha256=sha(system.encode())))
         execution = json.loads((directory / 'execution.json').read_text())
@@ -222,7 +226,10 @@ else: print(json.dumps({'response': 'Synthetic captured output, not a model answ
             idx = next(i for i,r in enumerate(v['trials']) if r['trial']==1 and r['case_id']=='empty')
             v['trials'][idx] = execution
         self.edit('candidate/run.json', manifest)
-        with self.assertRaises(ValueError):
+        # Rebind only this synthetic capture through a fresh grading copy, so the
+        # failure must concern A/B comparability rather than a stale receipt/hash.
+        self.bind_reviews(self.root, 'candidate')
+        with self.assertRaisesRegex(ValueError, 'only the routed candidate skill'):
             self.report()
 
     def test_invalid_grades_evidence_or_usage_rejected(self):

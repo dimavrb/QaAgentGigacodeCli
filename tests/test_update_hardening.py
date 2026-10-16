@@ -13,17 +13,15 @@ sys.path[:0] = [str(ROOT / 'scripts'), str(ROOT / 'tests')]
 import qa_auto_update as updater
 import qa_recover
 import qa_release
-import test_auto_update as fixtures
+from update_fixtures import UpdateFixture
 
 
-class UpdateHardeningTests(unittest.TestCase):
+class UpdateHardeningTests(UpdateFixture, unittest.TestCase):
     def setUp(self):
-        self.case = fixtures.AutoUpdateTests('test_up_to_date_never_calls_extension_update')
-        self.case.setUp()
-        self.addCleanup(self.case.doCleanups)
+        self.set_up_update_fixture()
 
     def test_missing_launcher_dependency_is_rejected_before_fast_forward(self):
-        c = self.case
+        c = self
         (c.author / 'scripts/package_agent.py').unlink()
         c.publish()
         with self.assertRaisesRegex(updater.UpdateError, 'preflight failed'):
@@ -34,7 +32,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertTrue(updater.payload_matches(c.source, c.installed))
 
     def test_syntax_and_import_failure_are_rejected_without_changing_installation(self):
-        c = self.case
+        c = self
         (c.author / 'scripts/qa_start.py').write_text('def broken(:\n')
         c.publish()
         with self.assertRaisesRegex(updater.UpdateError, 'preflight failed'):
@@ -43,7 +41,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertTrue(updater.payload_matches(c.source, c.installed))
 
     def test_runtime_import_failure_is_not_confused_with_a_valid_python_file(self):
-        c = self.case
+        c = self
         (c.author / 'scripts/qa_start.py').write_text('raise RuntimeError("fixture import failure")\n')
         c.publish()
         with self.assertRaisesRegex(updater.UpdateError, 'probe failed'):
@@ -52,7 +50,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertIsNone(updater.load_state(c.state)['pending'])
 
     def helper(self, command='rollback', env=None, process_rows=''):
-        c = self.case
+        c = self
         # Exercise the real zipapp with a deterministic host-process observation.
         # Other tests/CLI sessions on the machine must not select the wrong gate.
         program = (
@@ -71,7 +69,7 @@ class UpdateHardeningTests(unittest.TestCase):
                               capture_output=True, text=True, timeout=20)
 
     def test_recovery_helper_refuses_observed_active_cli_without_changing_files(self):
-        c = self.case; target = c.publish(); c.apply()
+        c = self; target = c.publish(); c.apply()
         def snapshot(root):
             return {str(path.relative_to(root)): path.read_bytes() for path in root.rglob('*')
                     if path.is_file() and '.git' not in path.relative_to(root).parts}
@@ -85,7 +83,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertEqual(installed_before, snapshot(c.installed))
 
     def test_independent_helper_works_when_the_mutable_launcher_cannot_import(self):
-        c = self.case
+        c = self
         script = c.author / 'scripts/qa_start.py'
         script.write_text(script.read_text().replace('def main():',
             'if os.environ.get("QA_FIXTURE_IMPORT_FAILURE"):\n    raise RuntimeError("fixture startup failure")\n\ndef main():'))
@@ -104,7 +102,7 @@ class UpdateHardeningTests(unittest.TestCase):
             c.apply()
 
     def test_partial_activation_can_be_rolled_back_without_running_package_code(self):
-        c = self.case; c.publish()
+        c = self; c.publish()
         original = c.native_cli
         def partial(arguments, **kwargs):
             if arguments == ['fake-gigacode', 'extensions', 'update', 'qa-agent']:
@@ -121,7 +119,7 @@ class UpdateHardeningTests(unittest.TestCase):
         c.assert_project_preserved()
 
     def test_backup_corruption_and_unrelated_installed_edits_refuse_rollback(self):
-        c = self.case; target = c.publish(); c.apply()
+        c = self; target = c.publish(); c.apply()
         path = c.installed / 'README.md'; path.write_text('Unrelated user adaptation')
         refused = self.helper()
         self.assertEqual(2, refused.returncode)
@@ -139,7 +137,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertEqual(target, c.git(c.source, 'rev-parse', 'HEAD'))
 
     def test_dirty_source_and_active_session_prevent_rollback(self):
-        c = self.case; target = c.publish(); c.apply()
+        c = self; target = c.publish(); c.apply()
         path = c.source / 'README.md'; expected = path.read_bytes(); path.write_text('Unrelated source edit')
         refused = self.helper()
         self.assertEqual(2, refused.returncode)
@@ -153,7 +151,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertEqual(target, c.git(c.source, 'rev-parse', 'HEAD'))
 
     def test_crash_between_directory_renames_can_resume_independently(self):
-        c = self.case; c.publish(); c.apply()
+        c = self; c.publish(); c.apply()
         original = os.rename
         def crash(source, destination, **kwargs):
             if str(source).startswith('.qa-restore-'):
@@ -168,7 +166,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertTrue(updater.payload_matches(c.source, c.installed))
 
     def test_recovery_intent_survives_crash_before_pending_marker(self):
-        c = self.case; c.publish()
+        c = self; c.publish()
         original = updater.save_state
         def crash(directory, state):
             if state['pending']:
@@ -183,7 +181,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertEqual('completed', qa_recover.load(c.state)['phase'])
 
     def test_unverified_public_commit_uses_cached_release_without_fast_forward(self):
-        c = self.case; c.publish()
+        c = self; c.publish()
         c.git(c.source, 'remote', 'set-url', 'origin', updater.REMOTE)
         original_git = updater.git
         def local_fetch(source, *arguments):
@@ -199,7 +197,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertIsNone(updater.load_state(c.state)['pending'])
 
     def test_managed_execution_must_be_stopped_before_rollback(self):
-        c = self.case; c.publish(); c.apply()
+        c = self; c.publish(); c.apply()
         state = c.project / '.qa-agent-state/execution.json'; state.parent.mkdir()
         state.write_text(json.dumps({'plan': {}, 'steps': {}, 'status': 'running'}))
         refused = self.helper()
@@ -211,7 +209,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertEqual('cancelled', json.loads(state.read_text())['status'])
 
     def test_rollback_preserves_modes_and_archives_displaced_extension_outside_install_root(self):
-        c = self.case
+        c = self
         executable = c.installed / 'scripts/qa_start.py'; executable.chmod(0o755)
         c.publish(); c.apply()
         result = self.helper()
@@ -226,7 +224,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertEqual(before, (c.state / 'recovery.json').read_bytes())
 
     def test_crash_after_completion_marker_reconciles_journal_before_next_update(self):
-        c = self.case; c.publish()
+        c = self; c.publish()
         original = updater.save_recovery
         def crash(profile, journal):
             if journal['phase'] == 'completed':
@@ -240,7 +238,7 @@ class UpdateHardeningTests(unittest.TestCase):
         self.assertEqual('completed', qa_recover.load(c.state)['phase'])
 
     def test_interrupt_terminates_installer_group_before_it_can_write_later(self):
-        destination = self.case.root / 'late-interrupt.txt'
+        destination = self.root / 'late-interrupt.txt'
         child_code = 'import time;from pathlib import Path;time.sleep(1);Path(' + repr(str(destination)) + ').write_text("late")'
         parent_code = 'import subprocess,sys,time;subprocess.Popen([sys.executable,"-c",' + repr(child_code) + ']);time.sleep(5)'
         process = subprocess.Popen([sys.executable, '-c', parent_code], stdout=subprocess.PIPE,

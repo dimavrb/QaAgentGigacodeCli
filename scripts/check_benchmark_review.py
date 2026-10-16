@@ -13,6 +13,26 @@ ROOT = Path(__file__).resolve().parents[1]
 SUITE = ROOT / 'examples/benchmark/suite.json'
 
 
+def instruction_documents(paths):
+    """Allow explicit subject docs, without admitting rubrics or external files."""
+    if not isinstance(paths, list):
+        raise ValueError('instruction_paths must be a list of package docs')
+    result = []
+    for name in paths:
+        if not isinstance(name, str):
+            raise ValueError('instruction_paths must contain package docs')
+        relative = Path(name)
+        path = ROOT / relative
+        if (relative.is_absolute() or '..' in relative.parts or '\\' in name
+                or not relative.parts or relative.parts[0] != 'docs' or relative.suffix != '.md'
+                or not path.resolve().is_relative_to((ROOT / 'docs').resolve())):
+            raise ValueError('instruction_paths must stay inside package docs')
+        if not path.is_file():
+            raise ValueError('instruction document is missing: ' + name)
+        result.append(path)
+    return result
+
+
 def load_suite(path: Path) -> tuple[dict, str]:
     raw = path.read_bytes()
     suite = json.loads(raw)
@@ -26,6 +46,14 @@ def load_suite(path: Path) -> tuple[dict, str]:
         if not isinstance(case, dict) or not isinstance(case.get('case_id'), str) or not case['case_id'].strip() or case['case_id'] in seen:
             raise ValueError('suite case IDs must be nonempty and unique')
         seen.add(case['case_id'])
+        if case.get('agent') is not None:
+            from qa_contract import ROLE_EVENTS
+            if not isinstance(case['agent'], str) or case['agent'] not in ROLE_EVENTS:
+                raise ValueError('Unknown benchmark role')
+        if case.get('test_type') is not None and (
+                not isinstance(case['test_type'], str) or case['test_type'] not in ('api', 'ui', 'kafka')):
+            raise ValueError('test_type must be api, ui or kafka')
+        instruction_documents(case.get('instruction_paths', []))
         if not isinstance(case.get('checks'), list) or not case['checks']:
             raise ValueError('case needs checks')
         check_ids = set()
@@ -37,12 +65,16 @@ def load_suite(path: Path) -> tuple[dict, str]:
         if not isinstance(case.get('prompt_file'), str) or not case['prompt_file'].strip():
             raise ValueError('case needs prompt_file')
         prompt_path = Path(case['prompt_file'])
-        if prompt_path.is_absolute() or '..' in prompt_path.parts:
+        if (prompt_path.is_absolute() or '..' in prompt_path.parts or '\\' in case['prompt_file']
+                or not (path.parent / prompt_path).resolve().is_relative_to(path.parent.resolve())):
             raise ValueError('prompt_file must stay inside suite directory')
         if not all(c.isalnum() or c in '-_' for c in case['case_id']):
             raise ValueError('case ID must be filesystem-safe')
         digest.update(case['prompt_file'].encode('utf-8'))
-        digest.update((path.parent / case['prompt_file']).read_bytes())
+        prompt = (path.parent / prompt_path).read_bytes()
+        if not prompt.decode('utf-8').strip():
+            raise ValueError('prompt must not be empty')
+        digest.update(prompt)
     return suite, digest.hexdigest()
 
 

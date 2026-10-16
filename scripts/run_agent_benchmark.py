@@ -13,7 +13,7 @@ from pathlib import Path
 
 import agent_trace
 import agent_runtime
-from check_benchmark_review import SUITE, load_suite, make_template
+from check_benchmark_review import SUITE, instruction_documents, load_suite, make_template
 from run_test_automation import captured_text, duration_seconds
 from profile_skills import PROFILE_SKILLS
 
@@ -65,20 +65,44 @@ def terminal_response(raw):
     return response, value
 
 
-def instructions(case_id, self_review, check_quality=True, role=None, profile_skills=False):
-    paths = [ROOT / 'docs/COORDINATOR.md', ROOT / 'docs/TEST_DESIGN.md', ROOT / 'docs/TEST_CASE_STYLE.md']
+def instructions(case_id, self_review, check_quality=True, role=None, profile_skills=False,
+                 *, test_type=None, instruction_paths=()):
+    import context_builder
+    paths = []
     role = role or ROLES.get(case_id)
     if role:
         from qa_contract import ROLE_EVENTS
         if role not in ROLE_EVENTS:
             raise ValueError('Unknown benchmark role')
         paths.append(ROOT / '.gigacode/agents' / f'{role}.md')
+    else:
+        paths.append(ROOT / 'docs/COORDINATOR.md')
+    if case_id == 'message':
+        paths.append(ROOT / 'docs/MESSAGES.md')
     if role in ('qa-analyst', 'qa-test-plan-writer'):
-        paths.append(ROOT / 'docs/TEST_PLAN.md')
+        if test_type is None:
+            paths.append(ROOT / 'docs/TEST_DESIGN.md')
+            paths.append(ROOT / 'docs/TEST_PLAN.md')
         paths.append(ROOT / 'docs/TEST_CASE_SELECTION.md')
     if role == 'qa-test-plan-writer':
+        paths.append(ROOT / 'docs/TEST_CASE_STYLE.md')
         paths.append(ROOT / '.gigacode/skills/qa-test-cases/SKILL.md')
+        paths.append(ROOT / 'docs/TEST_CASE_REVIEW.md')
+    case_specs = {}
+    if test_type is not None:
+        if role is None:
+            raise ValueError('test_type requires an explicit benchmark role')
+        assignment = dict(agent=role, test_type=test_type, review_scope='test_cases')
+        profile = context_builder.profile(assignment, {})
+        manual = {'docs/TEST_CASE_STYLE.md', 'docs/TEST_CASE_SELECTION.md',
+                  'docs/TEST_CASE_REVIEW.md', '.gigacode/skills/qa-test-cases/SKILL.md'}
+        case_specs = {name: spec for name, spec in profile['documents'].items()
+                      if name in manual or name.startswith('examples/test-cases/')}
+        paths.extend(ROOT / name for name in case_specs)
+    explicit_paths = instruction_documents(list(instruction_paths))
+    paths.extend(explicit_paths)
     if role in ('qa-test-automation', 'qa-autotest-reviewer'):
+        paths.append(ROOT / 'docs/TEST_CASE_STYLE.md')
         paths.append(ROOT / 'docs/AUTOTEST_QUALITY.md')
         paths.append(ROOT / 'docs/AUTOTEST_NAMING.md')
     if role == 'qa-test-data-builder':
@@ -94,6 +118,33 @@ def instructions(case_id, self_review, check_quality=True, role=None, profile_sk
     if self_review:
         paths.append(ROOT / 'docs/SELF_REVIEW.md')
     snapshots = {str(path.relative_to(ROOT)): path.read_text(encoding='utf-8') for path in paths}
+    for name, spec in case_specs.items():
+        snapshots[name] = context_builder.render(snapshots[name], spec, role)
+    # Reasoning tasks do not run the coordinator's delivery workflow. Preserve
+    # relevant norms and whole examples, rather than truncating by character count.
+    projections = {
+        'docs/TEST_DESIGN.md': ['', 'Компактная модель поведения', 'Ревью через контрпримеры'],
+        'docs/TEST_PLAN.md': ['', 'Выбор сценариев до детализации', 'Смысловые дубли',
+                              'Вопросы и частичная готовность', 'Проверка артефактов'],
+        'docs/TEST_CASE_REVIEW.md': ['', 'Содержательное ревью'],
+        'docs/TEST_CASE_STYLE.md': ['', 'Название кейса', 'Название шага',
+            'Краткость без потери смысла', 'Исполнимость инструкции', 'Наблюдение и предел вывода',
+            'Подготовка и достоверное контрольное чтение', 'Структурированный артефакт',
+            'Общие колонки и тестовые данные', 'Польза сценария и дубли', 'Связь с тест-планом'],
+    }
+    if test_type is not None:
+        projections['docs/TEST_CASE_STYLE.md'].append({
+            'api': 'API: запрос и пример ответа',
+            'ui': 'UI: Шаг — Ожидаемый результат — Тест-дата',
+            'kafka': 'Kafka: Шаг — Ожидаемый результат — Тест-дата',
+        }[test_type])
+    explicit = {str(path.relative_to(ROOT)) for path in explicit_paths}
+    for name, names in projections.items():
+        if name in snapshots and name not in explicit:
+            snapshots[name] = context_builder.select(snapshots[name], names)
+    if 'docs/SELF_REVIEW.md' in snapshots and 'docs/SELF_REVIEW.md' not in explicit:
+        snapshots['docs/SELF_REVIEW.md'] = context_builder.self_review(
+            snapshots['docs/SELF_REVIEW.md'], role or 'qa-coordinator')
     body = '\n\n'.join(f'Источник инструкций: {name}\n{text}' for name, text in snapshots.items())
     override = '''\n\nУсловия этого учебного reasoning benchmark имеют приоритет для запуска:
 Используй только сведения задания. Инструменты, чтение файлов, внешние действия и делегирование отключены.
@@ -139,7 +190,9 @@ def run_benchmark(output, *, cli=None, repeats=1, model=None, max_wall_time='5m'
         digest.update(prompts[case['case_id']])
     if digest.hexdigest() != fingerprint:
         raise ValueError('Suite changed while taking a snapshot')
-    systems = {case['case_id']: instructions(case['case_id'], self_review, check_quality, case.get('agent'), profile_skills) for case in suite['cases']}
+    systems = {case['case_id']: instructions(case['case_id'], self_review, check_quality,
+                case.get('agent'), profile_skills, test_type=case.get('test_type'),
+                instruction_paths=case.get('instruction_paths', [])) for case in suite['cases']}
     output = Path(output).resolve()
     # Exclusive directory reservation prevents accidental replacement of a baseline.
     output.mkdir(parents=True, exist_ok=False)
