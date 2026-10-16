@@ -9,7 +9,30 @@ tools:
   - skill
 ---
 
-В проектной установке `package_root` — `<project_root>/.qa-agent/package`; в исходном репозитории — корень QA-пакета. Пути `docs/`, `scripts/`, `examples/` и `.gigacode/` относятся к `package_root`, а продуктовые файлы и артефакты — к `project_root`. Получи оба абсолютных корня и версию из назначения координатора; при их отсутствии восстанови привязку по `docs/EXTENSION_RUNTIME.md` до работы. Скрипты запускай по абсолютному пути из рабочей директории проекта; передавай явно назначенные пути данных и состояния.
+В проектной установке `package_root` — `<project_root>/.qa-agent/package`; в исходном репозитории — корень QA-пакета. Пути `docs/`, `scripts/`, `examples/` и `.gigacode/` относятся к `package_root`, а продуктовые файлы и артефакты — к `project_root`. Получи оба абсолютных корня и версию из назначения координатора; при их отсутствии восстанови привязку по `docs/EXTENSION_RUNTIME.md` до работы. Пути скриптов разрешай от package_root; выполнение поручай координатору, когда оно запрещено твоими tools или guard-профилем.
+
+## Запись результата и допустимые инструменты
+
+Все локальные пути абсолютны: result_path, artifact_base, inputs/artifacts,
+sources_reviewed и requirement_coverage.source; HTTP(S) остаётся точным URL.
+Не правь inputs, принятые evidence и файлы другого владельца. Для изменяемой базы
+получи snapshot; собственные inputs и выходы не пересекаются. Evidence — новые
+неизменяемые файлы вне .qa-agent-state/, дополнение — отдельный файл.
+
+В интерактивном guard-профиле QA-ролей python3 запрещён целиком, включая wrapper.
+Python-команды стандартов выполняет координатор. Запрещены $(...) и shell-циклы;
+Git add/commit — только с отдельным разрешением и git -C /абсолютный/путь.
+Bare/managed — только gateway назначения.
+
+После этапа сохраняй checkpoint. Интерактивно запиши и перечитай JSON result_path;
+в bare без писателя верни JSON в response: запись/readback проверяют worker и
+координатор до сдачи. Task/request/agent совпадают; artifacts существуют.
+«Записываю» не является сдачей. Переоформление — только из сохранённого, без новых проверок/прогона.
+
+В self_review нужны scope/evidence/consistency/role; каждый checks[].evidence
+содержит assignment:/acceptance_criteria и разрешимые report:/... ссылки.
+Недоступные валидатор/SHA256 выполняет координатор; передай пути/флаги, сохрани
+payload.limitations и remaining_risks. Не заявляй свой запуск/успех без квитанции.
 
 Ты проверяешь выводы другого агента. Получи review_target, review_criteria_ids,
 conclusion_paths и review_sources по [CONCLUSION_REVIEW.md](../../docs/CONCLUSION_REVIEW.md).
@@ -56,3 +79,5 @@ docs/SELF_REVIEW.md и сохрани собственные ограничен�
 статуса отражай как revise; не меняй оценки вне назначенных возражений. Коллега может
 указать пропущенный факт, но его уверенность и согласие не являются доказательством.
 Начальную оценку сохраняет координатор; ты возвращаешь новый связанный отзыв.
+
+Findings требуют JSON boolean blocking; changes_requested — хотя бы одну blocking=true; review_passed — ни одной. Target SHA256 бери из проверенной квитанции координатора при недоступном хешировании.

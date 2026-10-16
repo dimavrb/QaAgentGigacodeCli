@@ -1,4 +1,4 @@
-# QA Agent — GIGACODE CLI · 2.3.14
+# QA Agent — GIGACODE CLI · 2.3.15
 
 Переносимый QA-пакет: координатор, 14 специализированных ролей, 6 skills,
 проверяемые контракты результатов и Python-инструменты. Основной профиль —
@@ -51,7 +51,7 @@ Major-переходы устанавливаются вручную. Подро
 
 В новой сессии проверьте `/qa:doctor`, `/agents manage`, `/skills`, `/help`,
 `/memory`, затем выполните `/qa <цель>`. Все QA-скрипты находятся внутри проекта.
-Переход с глобального extension — [UPGRADE_2.3.14.md](docs/UPGRADE_2.3.14.md).
+Обновление и переход с глобального extension — [UPGRADE_2.3.15.md](docs/UPGRADE_2.3.15.md).
 
 Начните с задачи по требованиям, без внешних систем. Для реальных проверок
 укажите стенд, сборку, данные, разрешённые действия и источники ожиданий.
@@ -126,6 +126,8 @@ python3 scripts/run_test_automation.py \
 - [Среды исполнения и переносимость](docs/RUNTIMES.md), [миграция на GIGACODE](docs/UPGRADE_2.1.2.md).
 - [Маршруты](docs/WORKFLOWS.md), [контракт](docs/CONTRACT.md), [приёмка](docs/TASK_ACCEPTANCE.md).
 - [Управляемое исполнение](docs/MANAGED_EXECUTION.md), [MCP-шлюз](docs/ACTION_GATEWAY.md), [сборка контекста](docs/CONTEXT_ASSEMBLY.md).
+- [Контекст координатора](docs/GIGACODE_OPTIMIZATION.md): выборочное чтение инструкций и handoff-файл вместо полного эха prepare.
+- [Допуск и сдача QA-ролей](docs/COORDINATION_SAFETY.md): тяжёлый слот, snapshots, пути, доказательства, владелец и границы инструментов.
 - [Качество и ревью](docs/CONTENT_REVIEW.md), [ревью выводов](docs/CONCLUSION_REVIEW.md), [ревью с исполнением](docs/REVIEW_EXECUTION.md).
 - [Импакт-анализ](docs/IMPACT_ANALYSIS.md), [измерения](docs/QA_IMPROVEMENTS.md), [benchmark](examples/benchmark/README.md).
 - [Тестовые данные](docs/TEST_DATA.md), [заглушки](docs/STUBS.md), [браузерный пул](docs/BROWSER_PROFILES.md), [HTML-вопросы](docs/QUESTIONS_UI.md).
@@ -137,7 +139,7 @@ python3 scripts/run_test_automation.py \
 - [Передача примеров агентам и проверка каталога](docs/TEST_CASE_REVIEW.md): роли, замороженный контекст и независимое ревью.
 - [HTML-план после итогового ревью](docs/TEST_PLAN_HTML.md): поиск кейсов и переходы к покрываемым требованиям.
 - [Несколько авторов тест-кейсов](docs/TEST_PLAN_PARTITION.md): границы групп, отдельные контексты и проверка полного объединения.
-- [Поставка 2.3.14](docs/RELEASE_2.3.14.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
+- [Поставка 2.3.15](docs/RELEASE_2.3.15.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
 
 ## Сохранённые QA-задачи
 

@@ -6,6 +6,12 @@ supervisor, отмена, проверки хешей и лимиты. Архи�
 
 ## Назначение reviewer
 
+Координатор выполняет COORDINATION_SAFETY.md: замороженные inputs без чужой
+записи, абсолютный requirement_coverage.source, файл/JSON результата и owner
+по runtime. Недоступный роли валидатор/SHA256 выполняет он же с квитанцией.
+Findings.blocking — JSON bool; changes_requested требует blocking=true,
+review_passed — всех checks passed без blocking.
+
 Разделённый план проверяй по [TEST_PLAN_PARTITION.md](TEST_PLAN_PARTITION.md).
 У reviewer группы та же plan_partition и её scenario_ids/первичные фрагменты.
 Общий результат требует отдельной проверки межгрупповых зависимостей, единых

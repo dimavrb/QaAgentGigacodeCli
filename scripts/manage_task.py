@@ -28,6 +28,8 @@ def main():
     assign.add_argument('--input', type=Path, required=True)
     prepare = sub.add_parser('prepare')
     prepare.add_argument('--request-id', required=True)
+    prepare.add_argument('--output', type=Path,
+                         help='Save full handoff to a new file; print only path, SHA256 and revision')
     start = sub.add_parser('start')
     start.add_argument('--request-id', required=True)
     start.add_argument('--owner-task-id', required=True)
@@ -80,7 +82,8 @@ def main():
         elif args.command == 'assign':
             result = exchange.assign(args.state, exchange.read_json(args.input), args.input.resolve().parent, args.expected_revision)
         elif args.command == 'prepare':
-            result = exchange.prepare_handoff(args.state, args.request_id, args.expected_revision)
+            result = exchange.prepare_handoff(args.state, args.request_id, args.expected_revision,
+                                              output_path=args.output)
         elif args.command == 'start':
             result = exchange.start_request(args.state, args.request_id, args.owner_task_id, args.delivery_id, args.expected_revision)
         elif args.command == 'submit':

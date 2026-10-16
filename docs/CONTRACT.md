@@ -23,6 +23,17 @@
 
 ## Краткое назначение исполнителю
 
+Для новых назначений до assign выполняй COORDINATION_SAFETY.md: все локальные
+пути абсолютны, в том числе result_path, artifact_base, inputs/artifacts,
+payload.sources_reviewed[] и payload.requirement_coverage[].source. HTTP(S)
+остаётся URL, локальный source сохраняет точный якорь. Если payload ещё нет,
+в назначении фиксируется абсолютная карта источников; до submit проверяется
+готовый payload целиком. Схема/legacy-CLI могут поддерживать относительные пути,
+но новый рабочий протокол их не выпускает. Исторические данные не мигрируются.
+Inputs не пересекаются с публикуемыми файлами самого назначения и активных
+чужих владельцев; для изменяемой базы передаётся побайтово проверенный snapshot
+принятой ревизии. Наличие result_path в тексте не доказывает запись результата.
+
 Передавай `task_id`, уникальный `request_id`, цель и критерии готовности, а также `stop_condition` (когда остановить выполнение и вернуть управление) и `expected_artifact` (какой проверяемый результат сохранить). Добавляй только применимые к роли сведения: идентификаторы сценариев, подтверждённое ожидаемое поведение и его источник, окружение и версию, необходимые предусловия, открытые вопросы. Для больших материалов указывай доступный исполнителю путь или URL и нужный раздел. Не включай весь предыдущий диалог или полные логи. Если источник недоступен, процитируй минимальный необходимый фрагмент и обозначь его происхождение.
 
 Ответ содержит только результат назначения, ограничения и ссылки на доказательства. При повторной передаче используй новый `request_id` и укажи, что изменилось относительно предыдущего результата. Не дублируй неизменившиеся материалы.
@@ -64,7 +75,7 @@
 | `needs_analysis`, `needs_environment`, `needs_test_data`, `needs_test_plan` | Конкретный вопрос или недостающее условие и затронутые сценарии |
 | `coverage_ready` | `plan_artifact`, `plan_revision`, `requirement_coverage`, `open_questions`; ранняя карта без подробного каталога |
 | `plan_partial` | Те же поля плюс `test_cases_artifact`; готовая часть и явные блокеры проектирования |
-| `plan_ready` | `plan_artifact`, `plan_revision`, `test_cases_artifact`, `requirement_coverage`, `open_questions`; `plan_artifact` — краткий план с покрытием по ID без повторения шагов кейсов; `test_cases_artifact` — локальный JSON-путь, абсолютный или относительно файла результата, проверенный по `docs/TEST_CASE_STYLE.md` |
+| `plan_ready` | `plan_artifact`, `plan_revision`, `test_cases_artifact`, `requirement_coverage`, `open_questions`; `plan_artifact` — краткий план с покрытием по ID без повторения шагов кейсов; `test_cases_artifact` — абсолютный локальный JSON-путь нового результата, проверенный по `docs/TEST_CASE_STYLE.md`; относительные пути старых данных остаются режимом совместимости |
 | `environment_ready` / `environment_partial` | `environment_id`, `product_version`, `verified_capabilities`, `limitations`; в новых назначениях ещё `environment_assignment_sha256`, `guide_checks` по ENVIRONMENT_READINESS.md; для partial ещё `ready_scenarios`, `blocked_scenarios` |
 | `data_ready` / `data_partial` | `environment_id`, `data_ids` или `recipe`, `verified_properties`, `cleanup`, `scenario_ids`; для partial ещё `blocked_scenarios`; новые назначения — product_version, data_assignment_sha256, data_state и проверки каждого условия по DATA_READINESS.md |
 | `stubs_plan_ready` | `environment_id`, `provider`, `mcp_server`, `project_id`, `namespace`, `assignment_artifact`, `scenario_ids`, `limitations`; черновик без мутаций |
@@ -130,10 +141,10 @@ Bound-автор возвращает base_revision из снимка; итог�
 partition_artifact с проверяемой сборкой. Scope проверяется при submit/review,
 только schema-проверка сообщения не подтверждает объединённое покрытие.
 
-Для `coverage_ready`, `plan_partial` и `plan_ready` обязательна непустая `plan_revision`. `plan_artifact` — локальный непустой файл, пути абсолютные или относительно JSON-отчёта. `requirement_coverage` — непустой массив объектов:
+Для `coverage_ready`, `plan_partial` и `plan_ready` обязательна непустая `plan_revision`. `plan_artifact` — локальный непустой файл; в новом отчёте все локальные пути абсолютны, относительные пути старых отчётов поддерживаются только для совместимости. `requirement_coverage` — непустой массив объектов:
 
 ```json
-{"requirement_id":"R-1","source":"requirements.md#search","scenario_ids":["TC-001"],"priority":"high","verification":"UI","evidence":"Скриншот результатов","status":"ready"}
+{"requirement_id":"R-1","source":"/absolute/path/qa/requirements.md#search","scenario_ids":["TC-001"],"priority":"high","verification":"UI","evidence":"Скриншот результатов","status":"ready"}
 ```
 
 Для `blocked` и `excluded` обязателен `reason`; допустим пустой список ID вместо фиктивного кейса. `planned` и `ready` требуют ID сценариев. В каталоге находятся ровно кейсы из строк `ready`.

@@ -656,7 +656,7 @@ def check_inputs(row):
         raise ValueError('Исходные материалы назначения изменились; требуется новое назначение')
 
 
-def prepare_handoff(path, rid, expected_revision):
+def prepare_handoff(path, rid, expected_revision, *, output_path=None):
     def operation(state):
         row = state['requests'].get(rid)
         if not row or row['status'] != 'queued':
@@ -666,7 +666,7 @@ def prepare_handoff(path, rid, expected_revision):
         answers = check_answers(state, row['assignment']['questionnaire_ids'])
         row.update(status='dispatching', delivery_id=secrets.token_urlsafe(18), attempt_id=secrets.token_hex(16))
         event(state, 'handoff_prepared', request_id=rid, delivery_id=row['delivery_id'])
-        return dict(task_id=state['task_id'], registry_revision=state['revision'] + 1,
+        handoff = dict(task_id=state['task_id'], registry_revision=state['revision'] + 1,
                     delivery_id=row['delivery_id'],
                     trace_context=registry_context(state, rid),
                     task_criteria={cid: state['criteria'][cid]['definition'] for cid in row['assignment'].get('criterion_ids', [])},
@@ -677,6 +677,26 @@ def prepare_handoff(path, rid, expected_revision):
                     check_quality_guide=(str(Path(__file__).resolve().parents[1] / '.gigacode/skills/qa-check-quality/SKILL.md')
                         if row['assignment']['agent'] in ('qa-analyst', 'qa-impact-analyst', 'qa-test-plan-writer', 'qa-feature-tester',
                             'qa-test-automation', 'qa-autotest-reviewer', 'qa-defect-investigator', 'qa-result-reviewer', 'qa-conclusion-reviewer') else None))
+        if output_path is None:
+            return handoff
+        output = Path(output_path).absolute()
+        reserved = {Path(path).resolve(), Path(str(Path(path).resolve()) + '.lock')}
+        for request in state['requests'].values():
+            assignment = request['assignment']
+            reserved.add(Path(assignment['result_path']).resolve())
+            reserved.update(Path(p).resolve() for p in assignment['inputs'])
+        if output.resolve() in reserved:
+            raise ValueError('Handoff output must differ from task state, inputs and result paths')
+        # Publish before committing dispatching: a failed file write cannot consume
+        # the single delivery. The file alone is never proof of a registry commit.
+        from qa_files import atomic_bytes
+        data = (json.dumps(dict(revision=handoff['registry_revision'], result=handoff),
+                           ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+        if not atomic_bytes(output, data, replace=False):
+            raise ValueError('Handoff output already exists; inspect state and file before continuing')
+        return dict(task_id=state['task_id'], request_id=rid, status='dispatching',
+                    handoff_path=str(output), handoff_sha256=hashlib.sha256(data).hexdigest(),
+                    registry_revision=handoff['registry_revision'])
     return mutate(path, expected_revision, operation)
 
 
