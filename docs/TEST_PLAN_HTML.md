@@ -54,7 +54,7 @@ HTML для изменения кейсов и не добавляй его в �
 
 В реестре назначения сохраняется presentation: status, path, sha256,
 plan_revision, source_hashes и review_request_ids. `manage_task.py show`,
-`manage_review_cycle.py show` и `qa_task_get` показывают ссылку/статус.
+`manage_review_cycle.py show` и `qa_tasks.py get` показывают ссылку/статус.
 Read-only discovery показывает записанный снимок, не пересчитывает эти хеши.
 При восстановлении сверяй текущие файлы; старый HTML относится к прежней ревизии.
 

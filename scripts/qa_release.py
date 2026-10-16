@@ -12,7 +12,7 @@ import zipfile
 from package_agent import ROOT_FILES, TREES, SKIP, build_package
 from qa_project import package_info
 
-ENTRYPOINTS = ('qa_start', 'qa_project', 'qa_project_agents', 'qa_extension_mcp', 'qa_recover')
+ENTRYPOINTS = ('qa_start', 'qa_project', 'qa_project_agents', 'qa_recover')
 
 
 def ci_passed(commit):
@@ -71,6 +71,8 @@ def validate(root):
             if not any(part in SKIP for part in path.parts):
                 trees[path] = ast.parse(path.read_bytes(), filename=str(path))
     pending, checked = list(ENTRYPOINTS), set()
+    if (scripts / 'qa_install.py').is_file():
+        pending.extend(('qa_install', 'qa_task_create'))
     while pending:
         name = pending.pop()
         if name in checked:
@@ -99,21 +101,22 @@ def probe(root, runner):
     # Fresh interpreter, no project cwd, no inherited PYTHONPATH, no bytecode writes.
     code = ('import sys,json,io,contextlib; from pathlib import Path; '
             'sys.path.insert(0,str(Path(sys.argv[1])/"scripts")); '
-            'import qa_start,qa_project_agents,qa_extension_mcp,qa_recover; '
+            'import qa_start,qa_project_agents,qa_recover; '
             'from qa_project import package_info; root=Path(sys.argv[1]); '
             'sys.argv=[str(root/"scripts/qa_start.py"),"--help"];\n'
             'with contextlib.redirect_stdout(io.StringIO()):\n'
             ' try: qa_start.main()\n'
             ' except SystemExit as exc:\n'
             '  if exc.code: raise\n'
-            'response=qa_extension_mcp.handle({"jsonrpc":"2.0","id":1,"method":"initialize",'
-            '"params":{"protocolVersion":"2025-06-18"}}); '
-            'assert "result" in response; print(json.dumps(package_info(root)))')
+            'if (root/"scripts/qa_install.py").is_file():\n'
+            ' import qa_install,qa_task_create\n'
+            'info=package_info(root); '
+            'print(json.dumps(info))')
     result = runner([sys.executable, '-I', '-B', '-c', code, str(root)], cwd=root, timeout=20)
     try:
         info = json.loads(result.stdout)
         if result.returncode or info['package_root'] != str(root.resolve()):
             raise ValueError('wrong probe result')
     except (ValueError, TypeError, KeyError) as exc:
-        raise ValueError('fresh launcher/MCP import probe failed; release was not accepted') from exc
+        raise ValueError('fresh launcher import probe failed; release was not accepted') from exc
     return info

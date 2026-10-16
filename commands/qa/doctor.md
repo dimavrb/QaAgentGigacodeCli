@@ -1,29 +1,12 @@
 ---
-description: Проверить подключение QA Agent extension без изменения проекта
+description: Проверить проектную установку QA Agent без изменения файлов
 ---
 
-Получи метаданные через MCP `qa_package_info` и фактический абсолютный
-`project_root` из текущего рабочего проекта. Вызови read-only MCP
-`qa_project_doctor` с `{"project_root":"<project_root>"}`. Относительный путь
-недопустим. Инструмент вызывает `doctor()` напрямую; единственный дочерний
-процесс — существующий зонд `gigacode --version`.
-`needs_attention` — штатный результат с failed-проверками, а не ошибка MCP.
-Ошибки чтения/структуры приходят как `isError` с `QA project error: …`.
-При недоступности инструмента используй CLI fallback:
-`python3 "<project_tool>" doctor --project-root "<project_root>"`;
-код 1 означает `needs_attention`, код 2 — ошибку. Не обходи ошибку MCP через CLI.
-Если недоступен и `qa_package_info`, возьми проверенный installed path из
-менеджера расширений и вызови `python3 "<package_root>/scripts/qa_project.py" info`.
-Не угадывай путь и не запускай одноимённый скрипт приложения.
-
-Не изменяй файлы и не исправляй конфигурацию автоматически. Сообщи результаты
-проверок, версию пакета и следующие действия для failed. Отдельно в текущей
-сессии проверь `/extensions`, `/agents manage`, `/skills`, `/help` и `/mcp`:
-MCP/CLI-диагностика не подтверждает, что CLI действительно загрузил все компоненты.
-Если QA-роли отсутствуют в `/agents manage`, покажи проектный способ через
-`qa_project_agents.py` по EXTENSIONS.md; сама диагностика роли не устанавливает.
-Failed `project_agent_copies` означает pending, конфликт или требующуюся
-синхронизацию по PROJECT_AGENT_UPDATES.md. Адаптация при неизменившейся базе
-допустима. Покажи план синхронизации; решения конфликтов требуют актуальных хешей.
-Не запускай продуктовые проверки и не обращайся к Jenkins/ТестОпс ради диагностики
-установки. Укажи `live_extension_verified=false`, пока нет фактического пилота.
+Определи project_root и package_root = <project_root>/.qa-agent/package.
+Выполни `python3 "<package_root>/scripts/qa_project.py" doctor --project-root "<project_root>"`.
+Код 1 означает needs_attention, код 2 — ошибку. Не исправляй файлы автоматически.
+Покажи версию и failed-проверки. Повреждение/несовпадение install.json, pending
+установки и смешанные версии требуют рассмотрения по PROJECT_INSTALLATION.md.
+Отдельно проверь `/agents manage`, `/skills`, `/help`, `/memory` в новой сессии.
+Успех локальных проверок не подтверждает live-загрузку или качество модели;
+сохраняй `live_extension_verified=false`. Не запускай продуктовые проверки.

@@ -13,7 +13,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import qa_files
 import qa_project as project_api
-from qa_extension_mcp import ToolDispatcher
 
 
 class ProjectHardeningTests(unittest.TestCase):
@@ -61,25 +60,6 @@ class ProjectHardeningTests(unittest.TestCase):
         self.assertEqual([], result['changed_files'])
         self.assertEqual(1, (self.project / '.gitignore').read_text().count('/.qa-agent/project.local.json'))
         self.assertEqual(3, len(self.snapshot()))
-
-    def test_rebind_compare_and_write_rejects_change_after_dispatcher_check(self):
-        project_api.initialize(self.project)
-        config = self.project / project_api.CONFIG
-        binding = json.loads(config.read_text()); binding['package_root'] = str(self.project / 'reviewed-old')
-        config.write_text(json.dumps(binding))
-        dispatcher = ToolDispatcher()
-        arguments = {'project_root': str(self.project)}
-        self.assertTrue(dispatcher.call('qa_project_init', arguments)['isError'])
-        original = project_api.initialize
-        def race(path, **kwargs):
-            current = json.loads(config.read_text()); current['package_root'] = str(self.project / 'unreviewed-new')
-            config.write_text(json.dumps(current))
-            return original(path, **kwargs)
-        with patch('qa_extension_mcp.initialize', side_effect=race):
-            response = dispatcher.call('qa_project_init', {**arguments, 'rebind': True})
-        self.assertTrue(response['isError'])
-        self.assertIn('binding changed since review', response['content'][0]['text'])
-        self.assertEqual(str(self.project / 'unreviewed-new'), json.loads(config.read_text())['package_root'])
 
     def test_rebind_checks_entire_reviewed_binding_not_only_old_path(self):
         project_api.initialize(self.project)

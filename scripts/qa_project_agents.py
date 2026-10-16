@@ -17,6 +17,9 @@ def install_agents(project: Path, root: Path = ROOT, *, apply: bool = False, man
     info = package_info(root)
     package = Path(info['package_root'])
     project = project_path(project, package)
+    from qa_install import INSTALL
+    if (project / INSTALL).exists():
+        raise ValueError('portable project profile is managed by qa_install.py; update the complete release')
     with project_lock(project):
         binding = read_binding(project / CONFIG, project)
         if (binding['package_root'] != str(package) or binding['package_version'] != info['package_version']):

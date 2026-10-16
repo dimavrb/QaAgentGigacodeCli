@@ -1,7 +1,11 @@
 # Установка и обновление проектных QA-ролей
 
+Для проектной установки с install.json обновляйте весь комплект через qa_install.py
+по [PROJECT_INSTALLATION.md](PROJECT_INSTALLATION.md). Следующая процедура
+сохранена для прежних отдельно управляемых копий ролей.
+
 `qa_project_agents.py` размещает роли в `<project_root>/.gigacode/agents/`.
-Исходник — установленный `package_root` из `qa_package_info`, совпадающий
+Исходник — установленный `package_root` из `qa_project.py info`, совпадающий
 с `.qa-agent/project.local.json`. Init сохраняет контракт трёх файлов;
 первое подключение ролей выполняется отдельной явной командой.
 

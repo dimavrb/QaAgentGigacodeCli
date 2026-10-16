@@ -2,12 +2,11 @@
 description: Показать сохранённые QA-задачи текущего проекта
 ---
 
-Получи `package_root` через `qa_package_info` и абсолютный `project_root`
-текущего приложения. Прочитай `<package_root>/docs/TASK_STORAGE.md`.
-Вызови read-only MCP `qa_tasks_list` с `project_root`; по умолчанию покажи
-незавершённые задачи. Если пользователь просит историю, передай
-`include_completed=true`. Обрабатывай страницы через `next_offset` с теми же
-параметрами, не объявляй первую страницу полным списком.
+Определи project_root; package_root = <project_root>/.qa-agent/package.
+Прочитай `<package_root>/docs/TASK_STORAGE.md`, проверь установку через `/qa:doctor`.
+Выполни `python3 "<package_root>/scripts/qa_tasks.py" --project-root "<project_root>" list`.
+Историю включай по запросу через --include-completed. Обрабатывай next_offset
+через --offset с теми же параметрами до завершения списка.
 
 Покажи таблицу: ID, название, статус работы, статус ревью, число активных
 назначений, открытые вопросы и время изменения. Сохраняй точные ID и пути реестров.
@@ -16,10 +15,5 @@ description: Показать сохранённые QA-задачи текущ�
 
 Не выбирай задачу и не запускай работу этой командой. Для продолжения укажи
 `/qa:resume <ID>`, для новой задачи — `/qa <цель>`.
-Если MCP-инструмент недоступен, используй CLI fallback:
-`python3 "<package_root>/scripts/qa_tasks.py" --project-root "<project_root>" list`.
-При недоступном `qa_package_info` возьми проверенный installed path из менеджера
-расширений. Не обходи `isError` через CLI и не угадывай путь пакета.
-
 Пожелания пользователя к списку:
 {{args}}

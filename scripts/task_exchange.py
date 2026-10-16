@@ -155,26 +155,33 @@ def mutate(path, expected_revision, operation):
         return dict(revision=state['revision'], result=result)
 
 
-def init_task(path, task_id, title, criteria=None):
+def new_task_state(task_id, title, criteria=None):
+    """Build the same initial state for the CLI and the constrained MCP writer."""
     task_id, title = required(task_id, 'task_id'), required(title, 'title')
     definitions = criteria_packet(criteria) if criteria is not None else None
+    state = dict(schema_version=1, task_id=task_id, title=title, revision=1,
+                 created_at=now(), updated_at=now(), execution_status='queued',
+                 review_status='not_required', active_request_ids=[], requests={}, questions={}, events=[])
+    state['open_question_ids'] = []
+    state.update(trace_id=secrets.token_hex(16), acceptance_mode='criteria' if definitions else 'legacy',
+                 criteria=definitions or {})
+    return state
+
+
+def init_task(path, task_id, title, criteria=None):
+    proposed = new_task_state(task_id, title, criteria)
+    task_id, title, definitions = proposed['task_id'], proposed['title'], proposed['criteria']
     with locked(path) as target:
         if target.exists():
             existing = read_state(target)
             if existing['task_id'] != task_id or existing['title'] != title:
                 raise ValueError('Реестр уже принадлежит другой задаче')
-            if definitions is not None and {k: v['definition'] for k, v in definitions.items()} != {
+            if criteria is not None and {k: v['definition'] for k, v in definitions.items()} != {
                     k: v['definition'] for k, v in existing.get('criteria', {}).items()}:
                 raise ValueError('Критерии существующего реестра отличаются; используйте set-criteria')
             return existing
-        state = dict(schema_version=1, task_id=task_id, title=title, revision=1,
-                     created_at=now(), updated_at=now(), execution_status='queued',
-                     review_status='not_required', active_request_ids=[], requests={}, questions={}, events=[])
-        state['open_question_ids'] = []
-        state.update(trace_id=secrets.token_hex(16), acceptance_mode='criteria' if definitions else 'legacy',
-                     criteria=definitions or {})
-        atomic_write(target, state)
-        return state
+        atomic_write(target, proposed)
+        return proposed
 
 
 def assignment_record(source, base):

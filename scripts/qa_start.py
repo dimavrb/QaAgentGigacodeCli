@@ -63,6 +63,20 @@ def main():
     try:
         source = ROOT.resolve()
         project = args.project_root.resolve()
+        from qa_install import INSTALL, binding as portable_binding, session_lock
+        if (project / INSTALL).exists():
+            if args.update_only or args.resume_after_update or args.session_lock_fd is not None:
+                raise UpdateError('project installation updates use qa_install.py from a new release')
+            with session_lock(project):
+                installed = portable_binding(project)
+                if installed['package_root'] != str(source):
+                    raise UpdateError('run .qa-agent/package/scripts/qa_start.py from this project')
+                cli = shutil.which('gigacode')
+                if not cli:
+                    raise UpdateError('GIGACODE unavailable; install/authenticate the CLI before qa-start')
+                print('QA project package: ' + installed['package_version'], file=sys.stderr, flush=True)
+                arguments = args.cli_args[1:] if args.cli_args[:1] == ['--'] else args.cli_args
+                return subprocess.call([cli, *arguments], cwd=project)
         project_path(project, source)
         binding = read_binding(project / CONFIG, project)
         installed = Path(binding['package_root']).resolve()

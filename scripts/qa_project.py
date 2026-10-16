@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bind a project to the installed QA extension without copying its source files."""
+"""Inspect and configure a portable project installation or a legacy QA binding."""
 from __future__ import annotations
 
 import argparse
@@ -19,7 +19,8 @@ CONFIG = Path('.qa-agent/project.local.json')
 CONTEXT = Path('.qa-agent/APP_CONTEXT.md')
 IGNORE_LINES = ('/.qa-agent/project.local.json', '/.qa-agent/update.local.json',
                 '/.qa-agent-state/', '/.qa-agent/artifacts/',
-                '/.qa-agent/agents.local.json', '/.qa-agent/agent-updates/')
+                '/.qa-agent/agents.local.json', '/.qa-agent/agent-updates/',
+                '/.qa-agent/install.local/', '/.qa-agent/session.local.lock')
 CONFIG_FIELDS = {'schema_version', 'package_name', 'package_version', 'package_root', 'project_root'}
 
 
@@ -58,10 +59,13 @@ def package_info(root: Path = ROOT) -> dict:
         declared = manifest.get(key) == relative if not native or key == 'contextFileName' else True
         if not declared or path.is_symlink() or not expected_type:
             raise ValueError(f'invalid extension resource: {key}')
-    for relative in ('docs/COORDINATOR.md', 'docs/EXTENSION_RUNTIME.md',
-                     'scripts/qa_project.py', 'scripts/qa_extension_mcp.py', 'scripts/qa_tasks.py',
-                     'scripts/qa_agent_state.py', 'scripts/qa_project_agents.py',
-                     'examples/qa-only/APP_CONTEXT.template.md'):
+    required_resources = ('docs/COORDINATOR.md', 'docs/EXTENSION_RUNTIME.md',
+                          'scripts/qa_project.py', 'scripts/qa_tasks.py',
+                          'scripts/qa_agent_state.py', 'scripts/qa_project_agents.py',
+                          'examples/qa-only/APP_CONTEXT.template.md')
+    if tuple(map(int, version.split('.'))) >= (2, 3, 13):
+        required_resources += ('scripts/qa_task_create.py', 'scripts/qa_install.py')
+    for relative in required_resources:
         if not (root / relative).is_file():
             raise ValueError(f'missing package resource: {relative}')
     return {'package_name': 'qa-agent', 'package_version': version, 'package_root': str(root),
@@ -94,6 +98,10 @@ def project_path(project: Path, package_root: Path) -> Path:
 
 
 def read_binding(path: Path, project: Path) -> dict:
+    from qa_install import binding
+    portable = binding(project)
+    if portable is not None:
+        return portable
     config = read_json(path)
     if (set(config) != CONFIG_FIELDS or type(config.get('schema_version')) is not int
             or config['schema_version'] != 1 or config['package_name'] != 'qa-agent'
@@ -136,7 +144,12 @@ def initialize(project: Path, root: Path = ROOT, *, rebind: bool = False, expect
 def initialize_locked(project, info, *, rebind, expected_binding, expected_binding_sha256):
     project_path(project, Path(info['package_root']))
     config_path, context_path, ignore_path = project / CONFIG, project / CONTEXT, project / '.gitignore'
-    previous = read_binding(config_path, project) if config_path.exists() else None
+    from qa_install import binding
+    portable = binding(project)
+    if portable and (portable['package_root'] != info['package_root']
+                     or portable['package_version'] != info['package_version']):
+        raise ValueError('use the QA scripts installed inside this project')
+    previous = portable or (read_binding(config_path, project) if config_path.exists() else None)
     if ((expected_binding is not None and previous != expected_binding)
             or (expected_binding_sha256 is not None and binding_digest(previous) != expected_binding_sha256)):
         raise ValueError('binding changed since review; show the current old/new paths again before rebind')
@@ -161,7 +174,7 @@ def initialize_locked(project, info, *, rebind, expected_binding, expected_bindi
     else:
         # A non-cooperating editor may have created the context after validation.
         read_bytes(context_path).decode('utf-8')
-    if previous != config:
+    if not portable and previous != config:
         atomic_write(config_path, json.dumps(config, ensure_ascii=False, indent=2) + '\n')
         changed.append(CONFIG.as_posix())
     return {'status': 'configured', **config, 'changed_files': changed,
@@ -182,8 +195,21 @@ def doctor(project: Path, root: Path = ROOT) -> dict:
         checks.append({'name': name, 'status': 'passed' if passed else 'failed', 'detail': detail})
     check('python', sys.version_info >= (3, 10), sys.version.split()[0])
     check('agents', info['agent_count'] == 14, str(info['agent_count']))
-    project_agents = sync_roles(project, Path(info['package_root']), info['package_version'],
-                               package_roles(Path(info['package_root'])), managed_only=True)
+    from qa_install import INSTALL, binding
+    portable, installation_error = None, None
+    if (project / INSTALL).exists():
+        try:
+            portable = binding(project)
+        except (OSError, ValueError) as exc:
+            installation_error = str(exc)
+    if portable or installation_error:
+        check('installation', installation_error is None, installation_error or 'Portable package and profile verified')
+        project_agents = {'needs_sync': bool(installation_error),
+                          'status': 'needs_attention' if installation_error else 'installed',
+                          'conflicts': [], 'adapted_roles': []}
+    else:
+        project_agents = sync_roles(project, Path(info['package_root']), info['package_version'],
+                                   package_roles(Path(info['package_root'])), managed_only=True)
     check('project_agent_copies', not project_agents['needs_sync'] and project_agents['status'] != 'needs_attention',
           'Managed QA roles need synchronization/review: ' + ', '.join(project_agents['conflicts'])
           if project_agents['needs_sync'] or project_agents['status'] == 'needs_attention'
@@ -191,10 +217,10 @@ def doctor(project: Path, root: Path = ROOT) -> dict:
     check('skills', info['skill_count'] == 6, str(info['skill_count']))
     check('commands', {'qa', 'qa:init', 'qa:doctor', 'qa:tasks', 'qa:resume'} <= set(info['commands']), ', '.join(info['commands']))
     config_path = project / CONFIG
-    if config_path.exists():
-        binding = read_binding(config_path, project)
-        check('binding', binding['package_root'] == info['package_root']
-              and binding['package_version'] == info['package_version'], 'run /qa:init after an extension update')
+    if portable or (config_path.exists() and not installation_error):
+        current = portable or read_binding(config_path, project)
+        check('binding', current['package_root'] == info['package_root']
+              and current['package_version'] == info['package_version'], 'use the installed project scripts and /qa:init')
     else:
         check('binding', False, 'run /qa:init')
     check('context', (project / CONTEXT).is_file(), str(project / CONTEXT))

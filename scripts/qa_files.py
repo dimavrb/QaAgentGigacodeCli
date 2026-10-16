@@ -44,15 +44,15 @@ def read_bytes(path, *, maximum=8 * 1024 * 1024):
             return data
 
 
-def atomic_text(path, text, *, replace=True):
+def atomic_bytes(path, data, *, replace=True):
     path = Path(path)
     with directory(path.parent, create=True) as parent:
         temporary = '.qa-' + secrets.token_hex(12)
         descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
                              0o600, dir_fd=parent)
         try:
-            with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
-                stream.write(text)
+            with os.fdopen(descriptor, 'wb') as stream:
+                stream.write(data)
                 stream.flush()
                 os.fsync(stream.fileno())
             if replace:
@@ -70,6 +70,10 @@ def atomic_text(path, text, *, replace=True):
             except FileNotFoundError:
                 pass
             os.fsync(parent)
+
+
+def atomic_text(path, text, *, replace=True):
+    return atomic_bytes(path, text.encode('utf-8'), replace=replace)
 
 
 @contextmanager

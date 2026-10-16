@@ -11,7 +11,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import qa_tasks
 import task_exchange as exchange
-from qa_extension_mcp import ToolDispatcher, handle
 
 
 class TaskDiscoveryTests(unittest.TestCase):
@@ -36,10 +35,6 @@ class TaskDiscoveryTests(unittest.TestCase):
     def snapshot(self):
         return {str(path.relative_to(self.project)): path.read_bytes() if path.is_file() else None
                 for path in self.project.rglob('*')}
-
-    def call(self, name, **arguments):
-        return handle({'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
-                       'params': {'name': name, 'arguments': arguments}}, ToolDispatcher())
 
     def test_empty_discovery_creates_nothing_and_runs_no_processes(self):
         with patch('subprocess.Popen', side_effect=AssertionError('No processes')):
@@ -232,41 +227,9 @@ class TaskDiscoveryTests(unittest.TestCase):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 qa_tasks.tasks_list(self.project, **kwargs)
 
-    def test_mcp_snapshots_and_argument_errors(self):
-        self.registry(); before = self.snapshot()
-        for name, arguments in (('qa_tasks_list', {}), ('qa_task_get', {'task_id': 'QA-123'})):
-            result = self.call(name, project_root=str(self.project), **arguments)['result']
-            self.assertNotIn('isError', result)
-            self.assertTrue(json.loads(result['content'][0]['text'])['snapshot_only'])
-        for name, arguments in (('qa_tasks_list', {'project_root': '.'}),
-                                ('qa_tasks_list', {'project_root': str(self.project), 'limit': True}),
-                                ('qa_tasks_list', {'project_root': str(self.project), 'offset': -1}),
-                                ('qa_task_get', {'project_root': str(self.project)}),
-                                ('qa_task_get', {'project_root': str(self.project), 'task_id': 1}),
-                                ('qa_task_get', {'project_root': str(self.project), 'task_id': 'QA-123', 'full': True})):
-            self.assertEqual(-32602, self.call(name, **arguments)['error']['code'])
-        result = self.call('qa_task_get', project_root=str(self.project), task_id='QA-MISSING')['result']
-        self.assertTrue(result['isError'])
-        self.assertTrue(result['content'][0]['text'].startswith('QA task error:'))
-        self.assertEqual(before, self.snapshot())
-
-    def test_stdio_and_cli_work_from_foreign_cwd_and_oversized_messages_do_not_kill_server(self):
+    def test_cli_reads_from_foreign_cwd_without_mutation(self):
         self.registry()
-        messages = ['{"params":' + '[' * 1500 + '0' + ']' * 1500 + '}',
-                    '"' + 'x' * 70000 + '"',
-                    json.dumps({'jsonrpc': '2.0', 'id': '\ud800', 'method': 'ping'}),
-                    json.dumps({'jsonrpc': '2.0', 'id': 3, 'method': 'tools/call', 'params': {
-                        'name': 'qa_task_get', 'arguments': {'project_root': str(self.project), 'task_id': 'QA-123'}}})]
         before = self.snapshot()
-        result = subprocess.run([sys.executable, str(ROOT / 'scripts/qa_extension_mcp.py')],
-                                input='\n'.join(messages) + '\n', cwd=self.project.parent,
-                                capture_output=True, text=True, timeout=5)
-        self.assertEqual(0, result.returncode, result.stderr)
-        responses = [json.loads(line) for line in result.stdout.splitlines()]
-        self.assertEqual(4, len(responses))
-        self.assertIn('error', responses[0]); self.assertIn('error', responses[1])
-        self.assertEqual({}, responses[2]['result'])
-        self.assertEqual('QA-123', json.loads(responses[3]['result']['content'][0]['text'])['task']['task_id'])
         result = subprocess.run([sys.executable, str(ROOT / 'scripts/qa_tasks.py'),
                                  '--project-root', str(self.project), 'list'], cwd=self.project.parent,
                                 capture_output=True, text=True, timeout=5)

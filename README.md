@@ -1,4 +1,4 @@
-# QA Agent — GIGACODE CLI · 2.3.12
+# QA Agent — GIGACODE CLI · 2.3.13
 
 Переносимый QA-пакет: координатор, 14 специализированных ролей, 6 skills,
 проверяемые контракты результатов и Python-инструменты. Основной профиль —
@@ -7,55 +7,35 @@
 
 ## Быстрый старт
 
-Для подключения только в одном проекте используйте
-[проектные файлы `.gigacode`](docs/IMPORT_INTO_APP.md#подключение-только-в-одном-проекте).
-Команда native install ниже получает локальный источник; проектную область
-установки нужно отдельно подтвердить в `--help` вашей сборки GIGACODE.
+Основной способ — [проектная установка](docs/PROJECT_INSTALLATION.md): обычные
+файлы в `.qa-agent/package/`, роли/skills/команды в `.gigacode/`. **QA MCP-сервер
+не требуется и не поставляется.** Нужны Python 3.10+, настроенный GIGACODE,
+macOS/Linux или WSL. Python-зависимости — стандартная библиотека.
 
-Нужны настроенный GIGACODE CLI, Python 3.10+ и Git. Python-пакеты устанавливать
-не нужно: утилиты используют стандартную библиотеку. Поддерживаемая среда
-локальных процессов — macOS/Linux, Windows через WSL.
+Получите проверенный выпуск в отдельную папку, затем из обычного терминала:
 
 ```bash
-mkdir -p "$HOME/qa-tools"
-git clone https://github.com/dimavrb/QaAgentGigacodeCli.git "$HOME/qa-tools/qa-agent"
-python3 --version
-gigacode --version
-gigacode extensions install "$HOME/qa-tools/qa-agent"
+python3 /path/to/qa-agent/scripts/qa_install.py --project-root /path/to/app
+python3 /path/to/qa-agent/scripts/qa_install.py --project-root /path/to/app --apply
 ```
 
-Установка принимает локальную папку: Git URL используется только командой
-`git clone`. Затем откройте `gigacode` из папки приложения и выполните:
+Первая команда показывает план, вторая устанавливает либо обновляет весь комплект.
+При конфликте прежние файлы сохраняются. Пакет, профиль и `.qa-agent/install.json`
+можно хранить в Git одним коммитом; абсолютных путей компьютера в manifest нет.
 
-```text
-/qa:init
-/qa:doctor
-/qa Составь тест-план для фильтрации по следующим требованиям: …
-```
-
-Для автоматического обновления перед QA-сессией добавьте alias в свой shell:
+Из корня приложения:
 
 ```bash
-alias qa-start='python3 "$HOME/qa-tools/qa-agent/scripts/qa_start.py"'
+python3 .qa-agent/package/scripts/qa_project.py init --project-root .
+python3 .qa-agent/package/scripts/qa_project.py doctor --project-root .
+python3 .qa-agent/package/scripts/qa_start.py --project-root .
 ```
 
-Дальше запускайте `qa-start` из папки приложения. Он проверит локальный clone,
-обновит пакет при новой версии, сохранит контекст и откроет GIGACODE.
-Подробности и условия переноса обновления — [AUTO_UPDATE.md](docs/AUTO_UPDATE.md).
-Если `extensions update qa-agent` требует сначала uninstall, используйте
-[ручную переустановку](docs/EXTENSIONS.md#ручная-переустановка-если-update-требует-uninstall):
-резервная копия, остановка сессий, `uninstall qa-agent`, затем install из локального clone.
-Автообновление в этом случае останавливается с диагностикой CLI.
-
-В новой сессии проверьте `/extensions`, `/memory`, `/agents manage`, `/skills`,
-`/help` и `/mcp`. Пилот загрузки целевой сборкой CLI обязателен:
-локальные тесты не подтверждают поведение менеджера расширений.
-Если глобальный extension установлен, но QA-роли отсутствуют в `/agents manage`,
-используйте [явную установку ролей в проект](docs/EXTENSIONS.md#если-агенты-extension-отсутствуют-в-agents-manage)
-через `qa_project_agents.py`: preview, затем `--apply`. Управляемые роли
-обновляются через `qa-start`, локальные адаптации сохраняются; конфликты
-рассматриваются по [PROJECT_AGENT_UPDATES.md](docs/PROJECT_AGENT_UPDATES.md).
-Установка из исходной Git-копии также поддерживается по [INSTALL.md](docs/INSTALL.md).
+В новой сессии проверьте `/qa:doctor`, `/agents manage`, `/skills`, `/help`,
+`/memory`, затем выполните `/qa <цель>`. QA-команды запускают скрипты внутри проекта.
+Обновления выполняются между сессиями тем же установщиком из нового выпуска;
+qa-start в проектном режиме только проверяет комплект и запускает GIGACODE.
+Переход с глобального extension — [UPGRADE_2.3.13.md](docs/UPGRADE_2.3.13.md).
 
 Начните с задачи по требованиям, без внешних систем. Для реальных проверок
 укажите стенд, сборку, данные, разрешённые действия и источники ожиданий.
@@ -82,7 +62,7 @@ alias qa-start='python3 "$HOME/qa-tools/qa-agent/scripts/qa_start.py"'
 | `.gigacode/settings.json` | Переносимый Playwright MCP-профиль без credentials |
 | `qa-runtime.json` | Исполнитель по умолчанию и контракт headless-запуска |
 | `gigacode-extension.json`, `GIGACODE_EXTENSION.md` | Манифест и контекст расширения |
-| `scripts/qa_project.py`, `scripts/qa_extension_mcp.py` | MCP: метаданные, инициализация проекта и read-only диагностика |
+| `scripts/qa_install.py`, `scripts/qa_project.py` | Проектная установка/обновление, переносимые метаданные, контекст и диагностика |
 | `scripts/qa_tasks.py`, `docs/TASK_STORAGE.md` | Список/чтение задач, единые пути и восстановление по реестру |
 | `scripts/qa_release.py`, `scripts/qa_recover.py`, `docs/UPDATE_SAFETY.md` | Проверка выпуска и независимый rollback вне checkout |
 | `scripts/`, `tests/`, `examples/` | Валидаторы, управляемое исполнение, измерения и учебные сценарии |
@@ -141,13 +121,17 @@ python3 scripts/run_test_automation.py \
 - [Передача примеров агентам и проверка каталога](docs/TEST_CASE_REVIEW.md): роли, замороженный контекст и независимое ревью.
 - [HTML-план после итогового ревью](docs/TEST_PLAN_HTML.md): поиск кейсов и переходы к покрываемым требованиям.
 - [Несколько авторов тест-кейсов](docs/TEST_PLAN_PARTITION.md): границы групп, отдельные контексты и проверка полного объединения.
-- [Поставка 2.3.12](docs/RELEASE_2.3.12.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
+- [Поставка 2.3.13](docs/RELEASE_2.3.13.md), [история](CHANGELOG.md), [план развития](docs/ROADMAP_3.0.md).
 
 ## Сохранённые QA-задачи
 
+Новый реестр создавайте локальным `scripts/qa_task_create.py --criteria <file>`.
+Команда сохраняет существующую задачу при идентичном повторе; путь реестра стандартный.
+Примеры — [TASK_STORAGE.md](docs/TASK_STORAGE.md).
+
 `/qa:tasks` показывает незавершённые задания проекта, `/qa:resume QA-123`
 восстанавливает выбранное по `.qa-agent-state/tasks/*/task.json`. Пустая `/qa`
-предлагает выбрать задачу или задать новую цель. Read-only MCP читает состояние;
+предлагает выбрать задачу или задать новую цель. Локальный CLI читает состояние;
 продолжение требует проверки владельца, доказательств и актуальных условий.
 Планы и кейсы команды — в Git, локальные реестры и доказательства — вне поставки.
 Единые пути и CLI fallback — [TASK_STORAGE.md](docs/TASK_STORAGE.md).

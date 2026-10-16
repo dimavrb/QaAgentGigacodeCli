@@ -8,13 +8,10 @@ description: Восстановить выбранную QA-задачу по с
 применимые инструкции координатора. Если ID не указан, покажи `/qa:tasks`
 и запроси выбор; не выбирай по дате или единственному результату автоматически.
 
-Вызови read-only MCP `qa_task_get` с `project_root` и выбранным `task_id`.
-Он возвращает снимок, а не разрешение запуска: `resume_ready=false` ожидаем.
-При недоступности инструмента используй CLI fallback:
-`python3 "<package_root>/scripts/qa_tasks.py" --project-root "<project_root>" get --task-id "<task_id>"`.
-При недоступном metadata MCP бери проверенный installed path из менеджера.
-Не обходи `isError` через CLI. Для старого нестандартного реестра используй
-явно переданный пользователем путь и `manage_task.py ... show` по инструкции хранения.
+Используй package_root = <project_root>/.qa-agent/package.
+Выполни `python3 "<package_root>/scripts/qa_tasks.py" --project-root "<project_root>" get --task-id "<task_id>"`.
+Результат — снимок, `resume_ready=false` ожидаем. Для нестандартного старого
+реестра используй явно переданный путь и `manage_task.py ... show`.
 
 Покажи цель, критерии, текущие этапы, владельцев и вопросы. Затем сверяй реальные
 артефакты, их hashes и ревизии, требования, сборку, окружение и данные. Не считай
