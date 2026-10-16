@@ -110,6 +110,8 @@ def probe(root, runner):
             '  if exc.code: raise\n'
             'if (root/"scripts/qa_install.py").is_file():\n'
             ' import qa_install,qa_task_create\n'
+            'if (root/"scripts/qa_project_update.py").is_file():\n'
+            ' import qa_project_update\n'
             'info=package_info(root); '
             'print(json.dumps(info))')
     result = runner([sys.executable, '-I', '-B', '-c', code, str(root)], cwd=root, timeout=20)

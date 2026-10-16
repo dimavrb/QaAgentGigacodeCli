@@ -54,6 +54,8 @@ def main():
     parser.add_argument('--update-only', action='store_true', help='Update and refresh binding without launching GIGACODE')
     parser.add_argument('--resume-after-update', help=argparse.SUPPRESS)
     parser.add_argument('--session-lock-fd', type=int, help=argparse.SUPPRESS)
+    parser.add_argument('--project-resume-version', help=argparse.SUPPRESS)
+    parser.add_argument('--project-session-lock-fd', type=int, help=argparse.SUPPRESS)
     parser.add_argument('cli_args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
     lock = None
@@ -63,20 +65,12 @@ def main():
     try:
         source = ROOT.resolve()
         project = args.project_root.resolve()
-        from qa_install import INSTALL, binding as portable_binding, session_lock
+        from qa_install import INSTALL
         if (project / INSTALL).exists():
-            if args.update_only or args.resume_after_update or args.session_lock_fd is not None:
-                raise UpdateError('project installation updates use qa_install.py from a new release')
-            with session_lock(project):
-                installed = portable_binding(project)
-                if installed['package_root'] != str(source):
-                    raise UpdateError('run .qa-agent/package/scripts/qa_start.py from this project')
-                cli = shutil.which('gigacode')
-                if not cli:
-                    raise UpdateError('GIGACODE unavailable; install/authenticate the CLI before qa-start')
-                print('QA project package: ' + installed['package_version'], file=sys.stderr, flush=True)
-                arguments = args.cli_args[1:] if args.cli_args[:1] == ['--'] else args.cli_args
-                return subprocess.call([cli, *arguments], cwd=project)
+            from qa_project_update import start_project
+            return start_project(project, source, args)
+        if args.project_resume_version or args.project_session_lock_fd is not None:
+            raise UpdateError('project update resume requires a portable installation')
         project_path(project, source)
         binding = read_binding(project / CONFIG, project)
         installed = Path(binding['package_root']).resolve()

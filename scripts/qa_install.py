@@ -23,6 +23,7 @@ INSTALL = Path('.qa-agent/install.json')
 TRANSACTION = Path('.qa-agent/install.local')
 PENDING = TRANSACTION / 'pending.json'
 SESSION = Path('.qa-agent/session.local.lock')
+BOOTSTRAP = Path('.qa-agent/bootstrap.local')
 CONTEXT = Path('.qa-agent/APP_CONTEXT.md')
 START, END = '<!-- qa-agent:begin -->', '<!-- qa-agent:end -->'
 BLOCK = (START + '\nQA-пакет проекта: `.qa-agent/package/`.\n'
@@ -107,10 +108,18 @@ def binding(project):
 
 
 @contextmanager
-def session_lock(project, *, exclusive=False):
+def session_lock(project, *, exclusive=False, descriptor=None):
+    inherited = descriptor is not None
     with directory(project / SESSION.parent, create=True) as parent:
-        descriptor = os.open(SESSION.name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK,
-                             0o600, dir_fd=parent)
+        if inherited:
+            expected = os.stat(SESSION.name, dir_fd=parent, follow_symlinks=False)
+            actual = os.fstat(descriptor)
+            if (actual.st_dev, actual.st_ino) != (expected.st_dev, expected.st_ino):
+                raise ValueError('inherited QA session lock belongs to another project')
+            os.set_inheritable(descriptor, False)
+        else:
+            descriptor = os.open(SESSION.name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK,
+                                 0o600, dir_fd=parent)
         try:
             import stat
             if not stat.S_ISREG(os.fstat(descriptor).st_mode):
@@ -118,15 +127,19 @@ def session_lock(project, *, exclusive=False):
             try:
                 fcntl.flock(descriptor, (fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH) | fcntl.LOCK_NB)
             except BlockingIOError as exc:
-                raise ValueError('QA session/update is active; close it before updating') from exc
-            yield
+                raise SessionBusy('QA session/update is active; close it before updating') from exc
+            yield descriptor
         finally:
             os.close(descriptor)
 
 
-def ensure_idle(project):
+class SessionBusy(ValueError):
+    pass
+
+
+def ensure_idle(project, *, bootstrap=False):
     from qa_auto_update import active_projects, other_cli_running
-    if active_projects([str(project)]) or other_cli_running():
+    if active_projects([str(project)]) or (not bootstrap and other_cli_running()):
         raise ValueError('close GIGACODE sessions and finish active QA assignments/plans before installing')
 
 
@@ -293,18 +306,22 @@ def clean_transaction(project):
         os.fsync(parent)
 
 
-def install(project, source=ROOT, *, apply=False, recovery=False):
+def install(project, source=ROOT, *, apply=False, recovery=False, bootstrap=False, session_lock_fd=None):
     from qa_project import project_path
     project, source = Path(project).resolve(), Path(source).resolve()
     project_path(project, source)
-    if source == project / PACKAGE or project in source.parents:
-        raise ValueError('run the installer from the new release outside the target project')
+    installed = project / PACKAGE
+    staged = source.is_relative_to(project / BOOTSTRAP)
+    if source == installed or installed in source.parents or (project in source.parents and not staged):
+        raise ValueError('use a new release outside the project or inside .qa-agent/bootstrap.local')
     with project_lock(project):
+        if bootstrap and (not staged or recovery or optional(project / INSTALL) is not None or installed.exists()):
+            raise ValueError('--bootstrap is only for a first installation from .qa-agent/bootstrap.local')
         if recovery:
             if not apply:
                 raise ValueError('--recover requires --apply')
             ensure_idle(project)
-            with session_lock(project, exclusive=True):
+            with session_lock(project, exclusive=True, descriptor=session_lock_fd):
                 return recover(project)
         if optional(project / PENDING) is not None:
             raise ValueError('unfinished QA installation; run --recover --apply first')
@@ -317,8 +334,8 @@ def install(project, source=ROOT, *, apply=False, recovery=False):
             return result
         if not operations:
             return {**result, 'status': 'unchanged'}
-        ensure_idle(project)
-        with session_lock(project, exclusive=True):
+        ensure_idle(project, bootstrap=bootstrap)
+        with session_lock(project, exclusive=True, descriptor=session_lock_fd):
             # Persist both sides before touching any managed file, including the manifest.
             records = []
             for name, before, after in operations:
@@ -346,9 +363,13 @@ def main():
     parser.add_argument('--project-root', type=Path, required=True)
     parser.add_argument('--apply', action='store_true')
     parser.add_argument('--recover', action='store_true', help='Restore files from an interrupted installation')
+    parser.add_argument('--bootstrap', action='store_true',
+                        help='First install from project-local staging while GIGACODE is open; active QA work is still forbidden')
+    parser.add_argument('--session-lock-fd', type=int, help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
-        result = install(args.project_root, apply=args.apply, recovery=args.recover)
+        result = install(args.project_root, apply=args.apply, recovery=args.recover,
+                         bootstrap=args.bootstrap, session_lock_fd=args.session_lock_fd)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 1 if result['status'] == 'conflict' else 0
     except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile) as exc:

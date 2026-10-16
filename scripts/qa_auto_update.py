@@ -77,10 +77,11 @@ class SessionLock:
         self.close()
 
 
-def run(arguments, *, cwd=None, timeout=20):
+def run(arguments, *, cwd=None, timeout=20, pass_fds=()):
     environment = dict(os.environ, GIT_TERMINAL_PROMPT='0')
     process = subprocess.Popen(arguments, cwd=cwd, env=environment, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, text=True, start_new_session=True)
+                               stderr=subprocess.PIPE, text=True, start_new_session=True,
+                               **({'pass_fds': pass_fds} if pass_fds else {}))
     try:
         output, errors = process.communicate(timeout=timeout)
     except BaseException:

@@ -20,6 +20,7 @@ class ProjectInstallTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.real_source_files = staticmethod(installer.source_files)
+        cls.real_ensure_idle = staticmethod(installer.ensure_idle)
         cls.info, cls.files = installer.source_files(ROOT)
 
     def setUp(self):
@@ -183,7 +184,7 @@ print(json.dumps(dict(cwd=str(Path.cwd()),args=sys.argv[1:],update_blocked=block
 ''')
         cli.chmod(0o700)
         command = [sys.executable, '-B', str(self.project / installer.PACKAGE / 'scripts/qa_start.py'),
-                   '--project-root', str(self.project), '--', '--fixture-option']
+                   '--project-root', str(self.project), '--no-update', '--', '--fixture-option']
         result = subprocess.run(command, cwd=self.base, capture_output=True, text=True, timeout=15,
                                 env={**os.environ, 'PATH': str(binaries) + os.pathsep + os.environ['PATH']})
         self.assertEqual(0, result.returncode, result.stderr)
@@ -312,6 +313,74 @@ print(json.dumps(dict(handoff=handoff,revision=e.read_state(state)['revision']))
         with installer.session_lock(self.project), self.assertRaisesRegex(ValueError, 'session/update'):
             self.install(apply=True)
         self.assertEqual(before, self.snapshot())
+
+    def test_first_install_can_run_from_project_local_staging(self):
+        source = self.project / installer.BOOTSTRAP / 'install-test/source'
+        source.mkdir(parents=True)
+        with patch('qa_install.ensure_idle', wraps=self.real_ensure_idle), patch(
+                'qa_auto_update.active_projects', return_value=False), patch(
+                'qa_auto_update.other_cli_running', return_value=True) as processes:
+            result = installer.install(self.project, source, bootstrap=True, apply=True)
+        self.assertEqual('installed', result['status'])
+        processes.assert_not_called()
+        installer.metadata(self.project)
+
+    def test_bootstrap_never_bypasses_active_qa_work(self):
+        source = self.project / installer.BOOTSTRAP / 'install-test/source'
+        source.mkdir(parents=True)
+        before = self.snapshot()
+        with patch('qa_install.ensure_idle', wraps=self.real_ensure_idle), patch(
+                'qa_auto_update.active_projects', return_value=True), self.assertRaisesRegex(ValueError, 'active QA'):
+            installer.install(self.project, source, bootstrap=True, apply=True)
+        self.assertEqual(before, self.snapshot())
+
+    def test_bootstrap_cannot_update_existing_or_partial_installation(self):
+        source = self.project / installer.BOOTSTRAP / 'install-test/source'
+        source.mkdir(parents=True)
+        package = self.project / installer.PACKAGE
+        package.mkdir()
+        before = self.snapshot()
+        with self.assertRaisesRegex(ValueError, 'first installation'):
+            installer.install(self.project, source, bootstrap=True, apply=True)
+        self.assertEqual(before, self.snapshot())
+        package.rmdir(); self.install(apply=True); self.upgrade()
+        before = self.snapshot()
+        with self.assertRaisesRegex(ValueError, 'first installation'):
+            installer.install(self.project, source, bootstrap=True, apply=True)
+        self.assertEqual(before, self.snapshot())
+
+    def test_bootstrap_requires_reserved_project_local_source(self):
+        for source in (ROOT, self.project / 'arbitrary-source', self.project / installer.PACKAGE / 'nested'):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                installer.install(self.project, source, bootstrap=True, apply=True)
+        self.assertEqual({}, self.snapshot())
+
+    def test_project_staging_cannot_escape_through_symlink(self):
+        outside = self.base / 'outside'; outside.mkdir()
+        stage = self.project / installer.BOOTSTRAP
+        stage.parent.mkdir(); stage.symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'first installation'):
+            installer.install(self.project, stage, bootstrap=True, apply=True)
+        self.assertEqual([], list(outside.iterdir()))
+
+    def test_documented_bootstrap_shell_installs_without_external_python(self):
+        source = self.base / 'origin'; source.mkdir()
+        for name, data in self.files.items():
+            target = source / name; target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(data)
+        def git(*args):
+            result = subprocess.run(['git', '-C', str(source), *args], capture_output=True, text=True, timeout=30)
+            self.assertEqual(0, result.returncode, result.stderr)
+        git('init'); git('add', '.')
+        git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+            '-c', 'commit.gpgsign=false', 'commit', '-m', 'Synthetic bootstrap source')
+        command = (ROOT / '.gigacode/commands/qa/init.md').read_text().split('```bash\n', 1)[1].split('```', 1)[0]
+        command = command.replace('https://github.com/dimavrb/QaAgentGigacodeCli.git', source.as_uri())
+        result = subprocess.run(['bash', '-c', command], cwd=self.project, capture_output=True, text=True, timeout=60,
+                                env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual('installed', json.loads(result.stdout)['status'])
+        installer.metadata(self.project)
+        self.assertFalse((self.project / qa_project.CONFIG).exists())
 
 
 if __name__ == '__main__':

@@ -20,7 +20,8 @@ CONTEXT = Path('.qa-agent/APP_CONTEXT.md')
 IGNORE_LINES = ('/.qa-agent/project.local.json', '/.qa-agent/update.local.json',
                 '/.qa-agent-state/', '/.qa-agent/artifacts/',
                 '/.qa-agent/agents.local.json', '/.qa-agent/agent-updates/',
-                '/.qa-agent/install.local/', '/.qa-agent/session.local.lock')
+                '/.qa-agent/install.local/', '/.qa-agent/session.local.lock',
+                '/.qa-agent/bootstrap.local/')
 CONFIG_FIELDS = {'schema_version', 'package_name', 'package_version', 'package_root', 'project_root'}
 
 
@@ -65,6 +66,8 @@ def package_info(root: Path = ROOT) -> dict:
                           'examples/qa-only/APP_CONTEXT.template.md')
     if tuple(map(int, version.split('.'))) >= (2, 3, 13):
         required_resources += ('scripts/qa_task_create.py', 'scripts/qa_install.py')
+    if tuple(map(int, version.split('.'))) >= (2, 3, 14):
+        required_resources += ('scripts/qa_project_update.py',)
     for relative in required_resources:
         if not (root / relative).is_file():
             raise ValueError(f'missing package resource: {relative}')
